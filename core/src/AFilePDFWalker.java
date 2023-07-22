@@ -9,13 +9,13 @@ import java.util.Objects;
 /**
  * Provide a basic implementation of directory visitor, notifying each directory or file found.
  */
-public abstract class ADirectoryWalker implements IDirectoryVisitor {
+public abstract class AFilePDFWalker {
     private final Path _start;
 
     /**
      * @param start The initial path from start
      */
-    public ADirectoryWalker(Path start){
+    public AFilePDFWalker(Path start){
         _start = start;
     }
 
@@ -25,17 +25,17 @@ public abstract class ADirectoryWalker implements IDirectoryVisitor {
      * @throws NullPointerException
      * @throws SecurityException
      */
-    public void Start() throws IOException, NullPointerException, SecurityException {
+    public void start() throws IOException, NullPointerException, SecurityException {
         Objects.requireNonNull(_start);
         Files.walkFileTree(_start, new SimpleFileVisitor<Path>(){
             @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                return FoundDirectory(dir, attrs);
-            }
-
-            @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                return FoundFile(file, attrs);
+                if(!attrs.isSymbolicLink() &&
+                        attrs.isRegularFile() &&
+                        getExtensionByStringHandling(file.getFileName().toString()).equals("pdf")){
+                    foundPDFFile(file);
+                }
+                return super.visitFile(file, attrs);
             }
         });
     }
@@ -43,16 +43,11 @@ public abstract class ADirectoryWalker implements IDirectoryVisitor {
     /**
      * Method to implement to handle a new file
      * @param file The found file
-     * @param attrs The file attributes
-     * @return The result of computation
      */
-    protected abstract FileVisitResult FoundFile(Path file, BasicFileAttributes attrs);
+    protected abstract void foundPDFFile(Path file);
 
-    /**
-     * Method to implement to handle a new directory
-     * @param dir The found directory
-     * @param attrs The directory attributes
-     * @return The result of computation
-     */
-    protected abstract FileVisitResult FoundDirectory(Path dir, BasicFileAttributes attrs);
+    private String getExtensionByStringHandling(String filename) {
+        return filename.substring(filename.lastIndexOf(".") + 1);
+    }
+
 }
