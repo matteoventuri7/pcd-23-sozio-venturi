@@ -6,6 +6,8 @@ public class Main {
         var s = new MultiThreadFileSearcher(Path.of("C://test"));
         try {
             var files = s.search("ciao");
+            s.pause();
+            s.resume();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

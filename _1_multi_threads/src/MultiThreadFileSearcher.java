@@ -3,13 +3,16 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class MultiThreadFileSearcher
-        extends AFilePDFWalker
+        extends AFilePDFSearcher
         implements IWordSearcher {
     private ExecutorService _threadPool;
     private final Object _fileFoundLock = new Object();
     private final ArrayList<Path> _files = new ArrayList<>();
+    private String _word;
 
     /**
      * @param start The initial path from start
@@ -19,9 +22,9 @@ public class MultiThreadFileSearcher
     }
 
     @Override
-    protected void foundPDFFile(Path file) {
+    protected void foundPDFFile(Path file) throws RejectedExecutionException {
         _threadPool.execute(() -> {
-            synchronized (_fileFoundLock){
+            synchronized (_fileFoundLock) {
                 System.out.println(file.toString());
                 _files.add(file);
             }
@@ -29,12 +32,13 @@ public class MultiThreadFileSearcher
     }
 
     @Override
-    public ArrayList<Path> search(String word) throws IOException {
+    public SearchResult search(String word) throws IOException {
+        _word = word;
         _files.clear();
-        try(var threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())){
-            _threadPool=threadPool;
+        try (var threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())) {
+            _threadPool = threadPool;
             start();
         }
-        return new ArrayList<Path>(_files);
+        return new SearchResult(_pause || _stop, _files, _totalFiles);
     }
 }
