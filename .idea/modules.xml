@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/_1_multi_threads/_1_multi_threads.iml" filepath="$PROJECT_DIR$/_1_multi_threads/_1_multi_threads.iml" />
+      <module fileurl="file://$PROJECT_DIR$/_2_virtual_threads/_2_virtual_threads.iml" filepath="$PROJECT_DIR$/_2_virtual_threads/_2_virtual_threads.iml" />
       <module fileurl="file://$PROJECT_DIR$/core/core.iml" filepath="$PROJECT_DIR$/core/core.iml" />
       <module fileurl="file://$PROJECT_DIR$/pcd-23-sozio-venturi.iml" filepath="$PROJECT_DIR$/pcd-23-sozio-venturi.iml" />
     </modules>
