@@ -3,5 +3,5 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 
 public interface IWordSearcher {
-    SearchResult search(String word) throws IOException;
+    SearchResult search() throws IOException, NullPointerException, SecurityException;
 }

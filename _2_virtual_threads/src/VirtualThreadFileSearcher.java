@@ -5,8 +5,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class VirtualThreadFileSearcher
-        extends AFilePDFSearcher
-        implements IWordSearcher {
+        extends AFilePDFSearcher {
     private ExecutorService _threadPool;
     private final Object _fileFoundLock = new Object();
     private final ArrayList<Path> _files = new ArrayList<>();
@@ -16,8 +15,9 @@ public class VirtualThreadFileSearcher
     /**
      * @param start The initial path from start
      */
-    public VirtualThreadFileSearcher(Path start) {
+    public VirtualThreadFileSearcher(Path start, String word) {
         super(start);
+        _word = word;
     }
 
     @Override
@@ -33,8 +33,7 @@ public class VirtualThreadFileSearcher
     }
 
     @Override
-    public SearchResult search(String word) throws IOException {
-        _word = word;
+    public SearchResult search() throws IOException {
         _files.clear();
         try (var threadPool = Executors.newVirtualThreadPerTaskExecutor()) { // Utilizza un Executor per i virtual thread
             _threadPool = threadPool;

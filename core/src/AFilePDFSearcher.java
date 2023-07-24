@@ -10,7 +10,8 @@ import java.util.Objects;
 /**
  * Provide a basic implementation of directory visitor, notifying each directory or file found.
  */
-public abstract class AFilePDFSearcher {
+public abstract class AFilePDFSearcher
+        implements IWordSearcher {
     private final Path _start;
     protected long _totalFiles = 0;
     protected boolean _stop = false, _pause = false;
@@ -25,10 +26,9 @@ public abstract class AFilePDFSearcher {
     }
 
     protected void reset() {
-        if(!_pause){
-            _bufferFiles.clear();
-            _bufferDirectories.clear();
-        }
+        // clear lists when we start again after a pause
+        _bufferFiles.clear();
+        _bufferDirectories.clear();
         _stop = false;
         _pause = false;
     }
@@ -41,41 +41,50 @@ public abstract class AFilePDFSearcher {
      * @throws SecurityException
      */
     public void start() throws IOException, NullPointerException, SecurityException {
-        reset();
-        Objects.requireNonNull(_start);
-        if (_bufferDirectories.isEmpty()) {
-            _bufferDirectories.add(_start);
+        if (_pause) {
+            // resuming files
+            for (Pair<Path, BasicFileAttributes> dataFile : new ArrayList<>(_bufferFiles)) {
+                visitFileImpl(dataFile.item1(), dataFile.item2());
+                _bufferFiles.remove(dataFile);
+            }
+            // resuming directories
+            for (Path dir : new ArrayList<>(_bufferDirectories)) {
+                _bufferDirectories.remove(dir);
+                startFileWalker(dir);
+            }
+            reset();
+        } else {
+            // fresh start or start again after a stop
+            reset();
+            Objects.requireNonNull(_start);
+            startFileWalker(_start);
         }
-        for(Pair<Path, BasicFileAttributes> dataFile : new ArrayList<>(_bufferFiles)){
-            visitFileImpl(dataFile.item1(), dataFile.item2());
-            _bufferFiles.remove(dataFile);
-        }
-        for (Path dir : new ArrayList<>(_bufferDirectories)) {
-            _bufferDirectories.remove(dir);
-            Files.walkFileTree(dir, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    visitFileImpl(file, attrs);
-                    return super.visitFile(file, attrs);
-                }
+    }
 
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    if (_stop) return FileVisitResult.TERMINATE;
-                    else if (_pause) {
-                        _bufferDirectories.add(dir);
-                        return FileVisitResult.TERMINATE;
-                    }
-                    return super.preVisitDirectory(dir, attrs);
-                }
+    private void startFileWalker(Path startDir) throws IOException {
+        Files.walkFileTree(startDir, new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                visitFileImpl(file, attrs);
+                return super.visitFile(file, attrs);
+            }
 
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    if (_stop) return FileVisitResult.TERMINATE;
-                    return super.postVisitDirectory(dir, exc);
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                if (_stop) return FileVisitResult.TERMINATE;
+                else if (_pause) {
+                    _bufferDirectories.add(dir);
+                    return FileVisitResult.TERMINATE;
                 }
-            });
-        }
+                return super.preVisitDirectory(dir, attrs);
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                if (_stop) return FileVisitResult.TERMINATE;
+                return super.postVisitDirectory(dir, exc);
+            }
+        });
     }
 
     private void visitFileImpl(Path file, BasicFileAttributes attrs) {
@@ -114,7 +123,7 @@ public abstract class AFilePDFSearcher {
 
     protected void resume() throws IOException, NullPointerException, SecurityException {
         if (_pause) {
-            start();
+            search();
         }
     }
 }

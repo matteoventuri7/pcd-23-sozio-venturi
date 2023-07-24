@@ -3,9 +3,9 @@ import java.nio.file.Path;
 
 public class Main {
     public static void main(String[] args) {
-        var s = new MultiThreadFileSearcher(Path.of("/Users/diegosozio/Documents/PCD/test"));
+        var s = new MultiThreadFileSearcher(Path.of("C://test"), "ciao");
         try {
-            var files = s.search("ciao");
+            var files = s.search();
             s.pause();
             s.resume();
         } catch (IOException e) {
@@ -15,5 +15,5 @@ public class Main {
     }
 }
 
-// per mac  var s = new MultiThreadFileSearcher(Path.of("/Users/diegosozio/Documents/PCD/test"));
-// per windows  var s = new MultiThreadFileSearcher(Path.of("C://test"));
+// per mac  var s = new MultiThreadFileSearcher(Path.of("/Users/diegosozio/Documents/PCD/test"), "ciao");
+// per windows  var s = new MultiThreadFileSearcher(Path.of("C://test"), "ciao");
