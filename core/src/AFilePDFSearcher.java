@@ -25,6 +25,10 @@ public abstract class AFilePDFSearcher {
     }
 
     protected void reset() {
+        if(!_pause){
+            _bufferFiles.clear();
+            _bufferDirectories.clear();
+        }
         _stop = false;
         _pause = false;
     }

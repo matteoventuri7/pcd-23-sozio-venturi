@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
 
 public class MultiThreadFileSearcher
         extends AFilePDFSearcher
@@ -24,9 +23,11 @@ public class MultiThreadFileSearcher
     @Override
     protected void foundPDFFile(Path file) throws RejectedExecutionException {
         _threadPool.execute(() -> {
-            synchronized (_fileFoundLock) {
-                System.out.println(file.toString());
-                _files.add(file);
+            if(_word != null){
+                synchronized (_fileFoundLock) {
+                    System.out.println(file.toString());
+                    _files.add(file);
+                }
             }
         });
     }
