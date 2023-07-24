@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Objects;
 
 /**
@@ -15,8 +17,8 @@ public abstract class AFilePDFSearcher
     private final Path _start;
     protected long _totalFiles = 0;
     protected boolean _stop = false, _pause = false;
-    protected ArrayList<Pair<Path, BasicFileAttributes>> _bufferFiles = new ArrayList<>();
-    protected ArrayList<Path> _bufferDirectories = new ArrayList<>();
+    protected HashSet<Pair<Path, BasicFileAttributes>> _bufferFiles = new HashSet<>();
+    protected HashSet<Path> _bufferDirectories = new HashSet<>();
 
     /**
      * @param start The initial path from start
