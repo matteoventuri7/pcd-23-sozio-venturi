@@ -6,6 +6,7 @@ public class Main {
     public static void main(String[] args) throws Exception {
         IWordSearcher s = new MultiThreadFileSearcher(Path.of("C://test"), "ciao");
         s.search();
+        Thread.sleep(10);
         s.pause();
         System.out.println("MAIN-pause");
         Thread.sleep(3000);

@@ -31,7 +31,7 @@ public class VirtualThreadFileSearcher
     @Override
     public void search() throws IOException {
         _serchResult = new SearchResult();
-        _threadPool = Executors.newVirtualThreadPerTaskExecutor();
+        //_threadPool = Executors.newVirtualThreadPerTaskExecutor();
         start();
     }
 

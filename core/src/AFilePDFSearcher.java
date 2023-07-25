@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Provide a basic implementation of directory visitor, notifying each directory or file found.
@@ -22,7 +24,7 @@ public abstract class AFilePDFSearcher
     protected HashSet<Pair<Path, BasicFileAttributes>> _bufferFiles = new HashSet<>();
     protected HashSet<Path> _bufferDirectories = new HashSet<>();
     protected long _bufferTotalFiles = 0;
-    private Thread _walker;
+    private ExecutorService _threadPool;
 
     /**
      * @param start The initial path from start
@@ -30,6 +32,7 @@ public abstract class AFilePDFSearcher
     public AFilePDFSearcher(Path start, String word) {
         _start = start;
         _word = word;
+        _threadPool = Executors.newCachedThreadPool();
     }
 
     protected void reset() {
@@ -71,14 +74,7 @@ public abstract class AFilePDFSearcher
     }
 
     private void startFileWalker(Path startDir) throws IOException {
-        if(_walker != null){
-            try {
-                _walker.join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        _walker = new Thread(() -> {
+        _threadPool.execute(() -> {
             try {
                 Files.walkFileTree(startDir, new SimpleFileVisitor<Path>() {
                     @Override
@@ -104,10 +100,8 @@ public abstract class AFilePDFSearcher
                         return super.postVisitDirectory(dir, exc);
                     }
                 });
-            } catch (Exception e) {            }
+            } catch (Exception e) {}
         });
-        _walker.setDaemon(true);
-        _walker.start();
     }
 
     private void visitFileImpl(Path file, BasicFileAttributes attrs) {
@@ -163,10 +157,6 @@ public abstract class AFilePDFSearcher
 
     @Override
     public void close() throws Exception {
-        try {
-            if (_walker != null)
-                _walker.join();
-        } catch (Exception ex) {
-        }
+        _threadPool.close();
     }
 }
