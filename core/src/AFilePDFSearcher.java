@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,16 +16,20 @@ import java.util.Objects;
 public abstract class AFilePDFSearcher
         implements IWordSearcher {
     private final Path _start;
-    protected long _totalFiles = 0;
+    protected SearchResult _serchResult;
+    private String _word;
     protected boolean _stop = false, _pause = false;
     protected HashSet<Pair<Path, BasicFileAttributes>> _bufferFiles = new HashSet<>();
     protected HashSet<Path> _bufferDirectories = new HashSet<>();
+    protected long _bufferTotalFiles = 0;
+    private Thread _walker;
 
     /**
      * @param start The initial path from start
      */
-    public AFilePDFSearcher(Path start) {
+    public AFilePDFSearcher(Path start, String word) {
         _start = start;
+        _word = word;
     }
 
     protected void reset() {
@@ -33,6 +38,7 @@ public abstract class AFilePDFSearcher
         _bufferDirectories.clear();
         _stop = false;
         _pause = false;
+        _serchResult = new SearchResult();
     }
 
     /**
@@ -45,6 +51,7 @@ public abstract class AFilePDFSearcher
     public void start() throws IOException, NullPointerException, SecurityException {
         if (_pause) {
             // resuming files
+            _serchResult.IncreseTotalFiles(_bufferTotalFiles);
             for (Pair<Path, BasicFileAttributes> dataFile : new ArrayList<>(_bufferFiles)) {
                 visitFileImpl(dataFile.item1(), dataFile.item2());
                 _bufferFiles.remove(dataFile);
@@ -64,40 +71,61 @@ public abstract class AFilePDFSearcher
     }
 
     private void startFileWalker(Path startDir) throws IOException {
-        Files.walkFileTree(startDir, new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                visitFileImpl(file, attrs);
-                return super.visitFile(file, attrs);
+        if(_walker != null){
+            try {
+                _walker.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
+        }
+        _walker = new Thread(() -> {
+            try {
+                Files.walkFileTree(startDir, new SimpleFileVisitor<Path>() {
+                    @Override
+                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                        visitFileImpl(file, attrs);
+                        return super.visitFile(file, attrs);
+                    }
 
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                if (_stop) return FileVisitResult.TERMINATE;
-                else if (_pause) {
-                    _bufferDirectories.add(dir);
-                    return FileVisitResult.TERMINATE;
-                }
-                return super.preVisitDirectory(dir, attrs);
-            }
+                    @Override
+                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                        System.out.println("Visit directory - Stop:"+_stop+";Pause:"+_pause);
+                        if (_stop) return FileVisitResult.TERMINATE;
+                        else if (_pause) {
+                            _bufferDirectories.add(dir);
+                            return FileVisitResult.TERMINATE;
+                        }
+                        return super.preVisitDirectory(dir, attrs);
+                    }
 
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                if (_stop) return FileVisitResult.TERMINATE;
-                return super.postVisitDirectory(dir, exc);
-            }
+                    @Override
+                    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                        if (_stop) return FileVisitResult.TERMINATE;
+                        return super.postVisitDirectory(dir, exc);
+                    }
+                });
+            } catch (Exception e) {            }
         });
+        _walker.setDaemon(true);
+        _walker.start();
     }
 
     private void visitFileImpl(Path file, BasicFileAttributes attrs) {
+        System.out.println("Visit file - Stop:"+_stop+";Pause:"+_pause);
         if (!_stop) {
-            _totalFiles++;
+            if (_pause) {
+                _bufferTotalFiles++;
+            } else {
+                _serchResult.IncreseTotalFiles();
+            }
             if (!attrs.isSymbolicLink() &&
                     attrs.isRegularFile() &&
-                    getExtensionByStringHandling(file.getFileName().toString()).equals("pdf")) {
+                    getExtensionFile(file.getFileName().toString()).equals("pdf")) {
                 if (_pause) {
                     _bufferFiles.add(new Pair<>(file, attrs));
+                    System.out.println("Buffered file " + file.toString());
                 } else {
+                    System.out.println("Handling file " + file.toString());
                     foundPDFFile(file);
                 }
             }
@@ -111,21 +139,34 @@ public abstract class AFilePDFSearcher
      */
     protected abstract void foundPDFFile(Path file);
 
-    private String getExtensionByStringHandling(String filename) {
+    private String getExtensionFile(String filename) {
         return filename.substring(filename.lastIndexOf(".") + 1);
     }
 
-    protected void stop() {
+    public void stop() {
         _stop = true;
     }
 
-    protected void pause() {
+    public void pause() {
         _pause = true;
     }
 
-    protected void resume() throws IOException, NullPointerException, SecurityException {
+    public void resume() throws IOException {
         if (_pause) {
-            search();
+            start();
+        }
+    }
+
+    public SearchResult getResult() {
+        return _serchResult;
+    }
+
+    @Override
+    public void close() throws Exception {
+        try {
+            if (_walker != null)
+                _walker.join();
+        } catch (Exception ex) {
         }
     }
 }
