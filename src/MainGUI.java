@@ -5,6 +5,7 @@ import java.awt.event.ActionListener;
 import java.nio.file.Path;
 import java.time.Duration;
 
+
 public class MainGUI {
     private static boolean isClosing = false;
     private static IWordSearcher s;
@@ -110,7 +111,7 @@ public class MainGUI {
         // Add elements to the JComboBox
         emptySelect.addItem("Approach: Multithreaded");
         emptySelect.addItem("Approach: Virtual Thread");
-        emptySelect.addItem("Option 3");
+        emptySelect.addItem("Approach: Task Java");
 
         // Create the computing time label
         computingTimeLabel = new JLabel("Computing Time: ");
@@ -130,6 +131,9 @@ public class MainGUI {
                             virtualThreadFileSearcher = new VirtualThreadFileSearcher(Path.of(folderPath), keyword);
                         }
                         s = virtualThreadFileSearcher;
+                        break;
+                    case "Approach: Task Java": // Create the Task Java approach instance
+                        s = new TaskFileSearcher(Path.of(folderPath), keyword);
                         break;
                     default:
                         break;
