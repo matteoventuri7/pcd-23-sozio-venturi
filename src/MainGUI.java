@@ -19,6 +19,9 @@ public class MainGUI {
     private static volatile boolean isStopping = false;
     private static volatile boolean isSuspended = false;
 
+    // Dichiara la JComboBox
+    private static JComboBox<String> emptySelect;
+
     public static void main(String[] args) {
         JFrame frame = new JFrame("File Search GUI");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -80,6 +83,9 @@ public class MainGUI {
         outputArea.setEditable(false);
         JScrollPane scrollPane = new JScrollPane(outputArea);
 
+        // Inizializza la JComboBox
+        emptySelect = new JComboBox<>();
+
         inputPanel.add(new JLabel("Folder:"));
         inputPanel.add(folderField);
         inputPanel.add(new JLabel("Keyword:"));
@@ -92,8 +98,17 @@ public class MainGUI {
         inputPanel.add(foundPdfFilesLabel);
         inputPanel.add(pdfFilesWithKeywordLabel);
 
+        // Aggiungi la JComboBox al pannello di input
+        inputPanel.add(new JLabel("Select:"));
+        inputPanel.add(emptySelect);
+
         frame.add(inputPanel, BorderLayout.NORTH);
         frame.add(scrollPane, BorderLayout.CENTER);
+
+        // Aggiungi gli elementi alla JComboBox
+        emptySelect.addItem("Option 1");
+        emptySelect.addItem("Option 2");
+        emptySelect.addItem("Option 3");
 
         startButton.addActionListener(new ActionListener() {
             @Override
