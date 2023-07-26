@@ -20,7 +20,7 @@ public class MainGUI {
     private static volatile boolean isStopping = false;
     private static volatile boolean isSuspended = false;
     private static JComboBox<String> emptySelect;
-
+    private static VirtualThreadFileSearcher virtualThreadFileSearcher;
     private static Timer computingTimer; // Timer to measure computing time
     private static long startTime; // Variable to store the start time
 
@@ -108,13 +108,34 @@ public class MainGUI {
         frame.add(scrollPane, BorderLayout.CENTER);
 
         // Add elements to the JComboBox
-        emptySelect.addItem("Option 1");
-        emptySelect.addItem("Option 2");
+        emptySelect.addItem("Approach: Multithreaded");
+        emptySelect.addItem("Approach: Virtual Thread");
         emptySelect.addItem("Option 3");
 
         // Create the computing time label
         computingTimeLabel = new JLabel("Computing Time: ");
         inputPanel.add(computingTimeLabel);
+
+        emptySelect.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String folderPath = folderField.getText();
+                String selectedApproach = (String) emptySelect.getSelectedItem();
+                switch (selectedApproach) {
+                    case "Approach: Multithreaded":
+                        s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
+                        break;
+                    case "Approach: Virtual Thread":
+                        if (virtualThreadFileSearcher == null) {
+                            virtualThreadFileSearcher = new VirtualThreadFileSearcher(Path.of(folderPath), keyword);
+                        }
+                        s = virtualThreadFileSearcher;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        });
 
         startButton.addActionListener(new ActionListener() {
             @Override

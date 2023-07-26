@@ -2,10 +2,11 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 
-public class VirtualThreadFileSearcher
-        extends AFilePDFSearcher {
+public class VirtualThreadFileSearcher extends AFilePDFSearcher {
     private ExecutorService _threadPool;
+    private SearchResult _searchResult;
 
     /**
      * @param start The initial path from start
@@ -24,20 +25,20 @@ public class VirtualThreadFileSearcher
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            _serchResult.addResult(file);
+            _searchResult.addResult(file);
         });
     }
 
     @Override
     public void search() throws IOException {
-        _serchResult = new SearchResult();
-        //_threadPool = Executors.newVirtualThreadPerTaskExecutor();
+        _searchResult = new SearchResult();
+        _threadPool = new ForkJoinPool(); // Use ForkJoinPool for virtual threads on JDK < 18
         start();
     }
 
     @Override
     public void close() throws Exception {
         super.close();
-        _threadPool.close();
+        _threadPool.shutdown();
     }
 }
