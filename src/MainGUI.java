@@ -4,10 +4,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
 
 public class MainGUI {
+    private static boolean isClosing = false;
     private static IWordSearcher s;
-    private static SearchResult result;
+    private static Thread updateOutputAreaThread;
     private static JTextArea outputArea;
     private static JLabel totalFilesLabel;
     private static JLabel foundPdfFilesLabel;
@@ -19,6 +21,29 @@ public class MainGUI {
     public static void main(String[] args) {
         JFrame frame = new JFrame("File Search GUI");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                isClosing = true;
+
+                if (s != null) {
+                    try {
+                        s.stop();
+                        s.close();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                if(updateOutputAreaThread != null){
+                    try {
+                        updateOutputAreaThread.join(Duration.ofSeconds(5));
+                    } catch (InterruptedException e) {
+                        // ops
+                    }
+                }
+            }
+        });
         frame.setSize(800, 800);
         frame.setLayout(new BorderLayout());
 
@@ -130,12 +155,12 @@ public class MainGUI {
     }
 
     private static void updateOutputArea() {
-        new Thread(new Runnable() {
+        updateOutputAreaThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 while (true) {
-                    if (s != null && s.getResult() != result) {
-                        result = s.getResult();
+                    if (s != null && s.getResult() != null) {
+                        var result = s.getResult();
                         SwingUtilities.invokeLater(new Runnable() {
                             @Override
                             public void run() {
@@ -162,10 +187,16 @@ public class MainGUI {
                     try {
                         Thread.sleep(100); // Add a short delay to avoid busy-waiting
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        // it's ok
+                    }
+
+                    if(isClosing){
+                        break;
                     }
                 }
             }
-        }).start();
+        });
+        updateOutputAreaThread.setDaemon(true);
+        updateOutputAreaThread.start();
     }
 }

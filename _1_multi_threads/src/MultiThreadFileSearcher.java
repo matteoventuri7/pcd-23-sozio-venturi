@@ -18,6 +18,11 @@ public class MultiThreadFileSearcher
     @Override
     protected void foundPDFFile(Path file) throws RejectedExecutionException {
         _threadPool.execute(() -> {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             _serchResult.addResult(file);
         });
     }
