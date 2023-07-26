@@ -2,7 +2,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 
@@ -19,7 +18,6 @@ public class MainGUI {
     private static String keyword; // Variable to store the searched keyword
     private static volatile boolean isStopping = false;
     private static volatile boolean isSuspended = false;
-
 
     public static void main(String[] args) {
         JFrame frame = new JFrame("File Search GUI");
@@ -38,6 +36,8 @@ public class MainGUI {
                     }
                 }
 
+                stopUpdateThread(); // Stop the update thread gracefully
+
                 if (updateOutputAreaThread != null) {
                     try {
                         updateOutputAreaThread.join(Duration.ofSeconds(5));
@@ -46,6 +46,19 @@ public class MainGUI {
                     }
                 }
             }
+
+            private static void stopUpdateThread() {
+                if (updateOutputAreaThread != null) {
+                    updateOutputAreaThread.interrupt();
+                    try {
+                        updateOutputAreaThread.join();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    updateOutputAreaThread = null;
+                }
+            }
+
         });
         frame.setSize(800, 800);
         frame.setLayout(new BorderLayout());
@@ -87,8 +100,9 @@ public class MainGUI {
             public void actionPerformed(ActionEvent e) {
                 String folderPath = folderField.getText();
                 keyword = keywordField.getText().trim(); // Save the searched keyword
-                System.out.println("STARTED");
                 stopButton.setEnabled(true);
+                startButton.setEnabled(false);
+                System.out.println("STARTED");
 
                 // Clear the output area before starting a new search
                 outputArea.setText("");
@@ -99,8 +113,13 @@ public class MainGUI {
                 try {
                     s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
                     s.search();
+
+                    // La ricerca è terminata, chiamiamo il metodo per segnalarlo
+                    searchFinished();
                 } catch (Exception ex) {
                     outputArea.append("Error: " + ex.getMessage() + "\n");
+                    // Assicuriamoci comunque di segnalare la fine della ricerca in caso di errore
+                    searchFinished();
                 }
             }
         });
@@ -111,10 +130,20 @@ public class MainGUI {
                 if (s != null) {
                     try {
                         s.stop();
-                        isStopping = true; // Imposta il flag per fermare il thread
+                        s = null; // Set the search instance to null to indicate the search has stopped
+                        isStopping = true; // Set the flag to stop the thread
                         System.out.println("STOPPED");
                         stopButton.setEnabled(false);
-                        startButton.setEnabled(true); // Abilita il pulsante "Start"
+                        startButton.setEnabled(true); // Enable the "Start" button
+
+                        // Remove the output area text when "Stop" is pressed
+                        outputArea.setText("");
+                        totalFilesLabel.setText("Total files: 0");
+                        foundPdfFilesLabel.setText("Found PDF files: 0");
+                        pdfFilesWithKeywordLabel.setText("PDF files with keyword: 0");
+
+                        // Update the keyword with the new value from the keywordField
+                        keyword = keywordField.getText().trim();
                     } catch (Exception ex) {
                         throw new RuntimeException(ex);
                     }
@@ -122,13 +151,13 @@ public class MainGUI {
             }
         });
 
-
         suspendButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (s != null) {
                     s.pause();
                     isSuspended = true; // Imposta il flag per indicare che la ricerca è sospesa
+                    System.out.println("SUSPENDED");
                     stopButton.setEnabled(false);
                     suspendButton.setEnabled(false);
                     resumeButton.setEnabled(true);
@@ -142,6 +171,7 @@ public class MainGUI {
                 if (s != null) {
                     s.pause();
                     isSuspended = false; // Ripristina il flag per indicare che la ricerca non è più sospesa
+                    System.out.println("RESUMED");
                     stopButton.setEnabled(true);
                     suspendButton.setEnabled(true);
                     resumeButton.setEnabled(false);
@@ -156,7 +186,6 @@ public class MainGUI {
             }
         });
 
-
         frame.setVisible(true);
         updateOutputArea();
     }
@@ -166,6 +195,20 @@ public class MainGUI {
             @Override
             public void run() {
                 while (true) {
+                    if (isClosing) {
+                        break;
+                    }
+
+                    // Check if the search is stopped, then wait until it's resumed
+                    while (isStopping) {
+                        try {
+                            Thread.sleep(100); // Add a short delay to avoid busy-waiting
+                        } catch (InterruptedException e) {
+                            // Va bene
+                        }
+                    }
+
+                    // Update the GUI with the search results
                     if (!isSuspended && s != null && s.getResult() != null) {
                         var result = s.getResult();
                         SwingUtilities.invokeLater(new Runnable() {
@@ -197,24 +240,22 @@ public class MainGUI {
                     } catch (InterruptedException e) {
                         // Va bene
                     }
-
-                    if (isClosing) {
-                        break;
-                    }
-
-                    // Check if the search is stopped, then wait until it's resumed
-                    while (isStopping) {
-                        try {
-                            Thread.sleep(100); // Add a short delay to avoid busy-waiting
-                        } catch (InterruptedException e) {
-                            // Va bene
-                        }
-                    }
                 }
             }
         });
         updateOutputAreaThread.setDaemon(true);
         updateOutputAreaThread.start();
     }
+    // Metodo per segnalare la fine della ricerca
+    private static void searchFinished() {
+        if (updateOutputAreaThread != null) {
+            // Riavviamo il thread di aggiornamento se è stato interrotto
+            if (updateOutputAreaThread.isInterrupted()) {
+                updateOutputAreaThread.interrupt();
+            }
+            // Reset dei flag per indicare che la ricerca è terminata e può essere ripresa nuovamente
+            isStopping = false;
+            isSuspended = false;
+        }
+    }
 }
-
