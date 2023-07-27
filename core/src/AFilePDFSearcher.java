@@ -4,9 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -54,7 +52,7 @@ public abstract class AFilePDFSearcher
     public void start() throws IOException, NullPointerException, SecurityException {
         if (_pause) {
             // resuming files
-            _serchResult.IncreseTotalFiles(_bufferTotalFiles);
+            _serchResult.IncreaseTotalFiles(_bufferTotalFiles);
             for (Pair<Path, BasicFileAttributes> dataFile : new ArrayList<>(_bufferFiles)) {
                 visitFileImpl(dataFile.item1(), dataFile.item2());
                 _bufferFiles.remove(dataFile);
@@ -85,7 +83,7 @@ public abstract class AFilePDFSearcher
 
                     @Override
                     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                        System.out.println("Visit directory - Stop:"+_stop+";Pause:"+_pause);
+                        System.out.println("Visit directory - Stop:" + _stop + ";Pause:" + _pause);
                         if (_stop) return FileVisitResult.TERMINATE;
                         else if (_pause) {
                             _bufferDirectories.add(dir);
@@ -100,17 +98,18 @@ public abstract class AFilePDFSearcher
                         return super.postVisitDirectory(dir, exc);
                     }
                 });
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         });
     }
 
     private void visitFileImpl(Path file, BasicFileAttributes attrs) {
-        System.out.println("Visit file - Stop:"+_stop+";Pause:"+_pause);
+        System.out.println("Visit file - Stop:" + _stop + ";Pause:" + _pause);
         if (!_stop) {
             if (_pause) {
                 _bufferTotalFiles++;
             } else {
-                _serchResult.IncreseTotalFiles();
+                _serchResult.IncreaseTotalFiles();
             }
             if (!attrs.isSymbolicLink() &&
                     attrs.isRegularFile() &&

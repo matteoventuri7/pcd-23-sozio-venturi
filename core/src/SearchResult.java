@@ -2,7 +2,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 
 public class SearchResult {
-    private boolean isPartial;
     private final ArrayList<Path> files = new ArrayList<>();
     private long totalFiles;
 
@@ -14,19 +13,11 @@ public class SearchResult {
         return new ArrayList<>(files);
     }
 
-    public void setResultPartial() {
-        isPartial = true;
-    }
-
-    public boolean isPartial() {
-        return isPartial;
-    }
-
-    public synchronized void IncreseTotalFiles() {
+    public synchronized void IncreaseTotalFiles() {
         totalFiles++;
     }
 
-    void IncreseTotalFiles(long count) {
+    void IncreaseTotalFiles(long count) {
         totalFiles += count;
     }
 

@@ -4,21 +4,20 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.stream.Collectors;
 
 
 public class MainGUI {
-    private static boolean isClosing = false;
+    private static boolean closeOutputThread = false;
     private static IWordSearcher s;
     private static Thread updateOutputAreaThread;
     private static JTextArea outputArea;
     private static JLabel totalFilesLabel;
     private static JLabel foundPdfFilesLabel;
-    private static JLabel pdfFilesWithKeywordLabel;
     private static JLabel computingTimeLabel; // New label for computing time
     private static JButton stopButton;
     private static JButton startButton;
     private static String keyword;
-    private static volatile boolean isStopping = false;
     private static volatile boolean isSuspended = false;
     private static JComboBox<String> emptySelect;
     private static VirtualThreadFileSearcher virtualThreadFileSearcher;
@@ -31,18 +30,15 @@ public class MainGUI {
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-                isClosing = true;
+                closeOutputThread = true;
 
                 if (s != null) {
                     try {
                         s.stop();
-                        s.close();
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 }
-
-                stopUpdateThread(); // Stop the update thread gracefully
 
                 if (updateOutputAreaThread != null) {
                     try {
@@ -50,18 +46,6 @@ public class MainGUI {
                     } catch (InterruptedException e) {
                         // ops
                     }
-                }
-            }
-
-            private static void stopUpdateThread() {
-                if (updateOutputAreaThread != null) {
-                    updateOutputAreaThread.interrupt();
-                    try {
-                        updateOutputAreaThread.join();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    updateOutputAreaThread = null;
                 }
             }
         });
@@ -80,7 +64,6 @@ public class MainGUI {
 
         totalFilesLabel = new JLabel("Total files: 0");
         foundPdfFilesLabel = new JLabel("Found PDF files: 0");
-        pdfFilesWithKeywordLabel = new JLabel("PDF files with keyword: 0");
 
         outputArea = new JTextArea();
         outputArea.setEditable(false);
@@ -99,7 +82,10 @@ public class MainGUI {
         inputPanel.add(resumeButton);
         inputPanel.add(totalFilesLabel);
         inputPanel.add(foundPdfFilesLabel);
-        inputPanel.add(pdfFilesWithKeywordLabel);
+
+        resumeButton.setEnabled(false);
+        stopButton.setEnabled(false);
+        suspendButton.setEnabled(false);
 
         // Add the JComboBox to the input panel
         inputPanel.add(new JLabel("Select:"));
@@ -133,7 +119,7 @@ public class MainGUI {
                         s = virtualThreadFileSearcher;
                         break;
                     case "Approach: Task Java": // Create the Task Java approach instance
-                        s = new TaskFileSearcher(Path.of(folderPath), keyword);
+                        s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
                         break;
                     default:
                         break;
@@ -144,10 +130,13 @@ public class MainGUI {
         startButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                startOutputArea();
                 // Store the start time when the "Start" button is pressed
                 String folderPath = folderField.getText();
                 keyword = keywordField.getText().trim(); // Save the searched keyword
                 startTime = System.nanoTime();
+                stopButton.setEnabled(true);
+                suspendButton.setEnabled(true);
                 stopButton.setEnabled(true);
                 startButton.setEnabled(false);
                 System.out.println("STARTED");
@@ -156,24 +145,20 @@ public class MainGUI {
                 outputArea.setText("");
                 totalFilesLabel.setText("Total files: 0");
                 foundPdfFilesLabel.setText("Found PDF files: 0");
-                pdfFilesWithKeywordLabel.setText("PDF files with keyword: 0");
 
                 try {
                     s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
                     s.search();
 
                     // The search has finished, call the method to signal it
-                    searchFinished();
+                    // NON SAPPIAMO QUANDO REALMETNE FINISCE IL FILE WALKER - searchFinished();
                 } catch (Exception ex) {
                     outputArea.append("Error: " + ex.getMessage() + "\n");
                     // Still make sure to signal the end of the search in case of error
-                    searchFinished();
+                    //searchFinished();
                 }
             }
         });
-
-        frame.setVisible(true);
-        updateOutputArea();
 
         stopButton.addActionListener(new ActionListener() {
             @Override
@@ -181,20 +166,12 @@ public class MainGUI {
                 if (s != null) {
                     try {
                         s.stop();
-                        s = null; // Set the search instance to null to indicate the search has stopped
-                        isStopping = true; // Set the flag to stop the thread
+                        closeOutputThread = true;
                         System.out.println("STOPPED");
                         stopButton.setEnabled(false);
+                        resumeButton.setEnabled(false);
+                        suspendButton.setEnabled(false);
                         startButton.setEnabled(true); // Enable the "Start" button
-
-                        // Remove the output area text when "Stop" is pressed
-                        outputArea.setText("");
-                        totalFilesLabel.setText("Total files: 0");
-                        foundPdfFilesLabel.setText("Found PDF files: 0");
-                        pdfFilesWithKeywordLabel.setText("PDF files with keyword: 0");
-
-                        // Update the keyword with the new value from the keywordField
-                        keyword = keywordField.getText().trim();
                     } catch (Exception ex) {
                         throw new RuntimeException(ex);
                     }
@@ -231,32 +208,30 @@ public class MainGUI {
                     outputArea.setText("");
                     totalFilesLabel.setText("Total files: 0");
                     foundPdfFilesLabel.setText("Found PDF files: 0");
-                    pdfFilesWithKeywordLabel.setText("PDF files with keyword: 0");
                     keyword = keywordField.getText().trim(); // Update the searched keyword
                 }
             }
         });
 
         frame.setVisible(true);
-        updateOutputArea();
     }
 
-    private static void updateOutputArea() {
+    private static void startOutputArea() {
+        if(updateOutputAreaThread != null){
+            try {
+                updateOutputAreaThread.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
         updateOutputAreaThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                while (true) {
-                    if (isClosing) {
-                        break;
-                    }
+                closeOutputThread = false;
 
-                    // Check if the search is stopped, then wait until it's resumed
-                    while (isStopping) {
-                        try {
-                            Thread.sleep(100); // Add a short delay to avoid busy-waiting
-                        } catch (InterruptedException e) {
-                            // It's okay
-                        }
+                while (true) {
+                    if (closeOutputThread) {
+                        break;
                     }
 
                     // Update the GUI with the search results
@@ -265,23 +240,13 @@ public class MainGUI {
                         SwingUtilities.invokeLater(new Runnable() {
                             @Override
                             public void run() {
-                                outputArea.setText("");
-                                outputArea.append("IsPartial: " + result.isPartial() + "\n");
+                                String listOfFiles = result.getFiles()
+                                        .stream()
+                                        .map(Path::toString)
+                                        .collect(Collectors.joining("\n"));
+                                outputArea.setText(listOfFiles);
                                 totalFilesLabel.setText("Total files: " + result.getTotalFiles());
                                 foundPdfFilesLabel.setText("Found PDF files: " + result.getFiles().size());
-
-                                // Reset the counter for PDF files with the keyword
-                                int pdfWithKeyword = 0;
-                                for (Path file : result.getFiles()) {
-                                    outputArea.append(file.toString() + "\n");
-                                    if (file.toString().toLowerCase().endsWith(".pdf")) {
-                                        // Check if the filename contains the keyword
-                                        if (file.getFileName().toString().toLowerCase().contains(keyword)) {
-                                            pdfWithKeyword++;
-                                        }
-                                    }
-                                }
-                                pdfFilesWithKeywordLabel.setText("PDF files with keyword: " + pdfWithKeyword);
                             }
                         });
                     }
@@ -301,12 +266,8 @@ public class MainGUI {
     // Method to signal the end of the search
     private static void searchFinished() {
         if (updateOutputAreaThread != null) {
-            // Restart the update thread if it was interrupted
-            if (updateOutputAreaThread.isInterrupted()) {
-                updateOutputAreaThread.interrupt();
-            }
             // Reset the flags to indicate that the search has ended and can be resumed again
-            isStopping = false;
+            closeOutputThread = true;
             isSuspended = false;
             // Compute and update the computing time label
             long endTime = System.nanoTime();

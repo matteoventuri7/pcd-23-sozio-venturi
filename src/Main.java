@@ -45,7 +45,7 @@ public class Main {
                 s = new VirtualThreadFileSearcher(Path.of(folderPath), keyword);
                 break;
             case "3":
-                s = new TaskFileSearcher(Path.of(folderPath), keyword);
+                //s = new TaskFileSearcher(Path.of(folderPath), keyword);
                 break;
         }
 
@@ -62,7 +62,6 @@ public class Main {
     }
 
     private static void PrintResult(SearchResult result) {
-        System.out.println("IsPartial:" + result.isPartial());
         System.out.println("Total files:" + result.getTotalFiles());
         System.out.println("Found files:" + result.getFiles().size());
         for (Path file : result.getFiles()) {
