@@ -4,8 +4,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.stream.Collectors;
-
 
 public class MainGUI {
     private static boolean closeOutputThread = false;
@@ -24,7 +24,7 @@ public class MainGUI {
     private static JComboBox<String> emptySelect;
     private static VirtualThreadFileSearcher virtualThreadFileSearcher;
     private static Timer computingTimer; // Timer to measure computing time
-    private static long startTime; // Variable to store the start time
+    private static Instant startTime; // Variable to store the start time
 
     public static void main(String[] args) {
         JFrame frame = new JFrame("File Search GUI");
@@ -136,7 +136,7 @@ public class MainGUI {
                 // Store the start time when the "Start" button is pressed
                 String folderPath = folderField.getText();
                 keyword = keywordField.getText().trim(); // Save the searched keyword
-                startTime = System.nanoTime();
+                startTime = Instant.now(); // Record the start time
                 stopButton.setEnabled(true);
                 suspendButton.setEnabled(true);
                 stopButton.setEnabled(true);
@@ -152,12 +152,23 @@ public class MainGUI {
                     s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
                     s.search();
 
-                    // The search has finished, call the method to signal it
-                    // NON SAPPIAMO QUANDO REALMETNE FINISCE IL FILE WALKER - searchFinished();
+                    // Start the computingTimer when the search starts
+                    computingTimer = new Timer(100, new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            // Update the computing time label with the elapsed time
+                            if (s != null && !s.isFinished()) {
+                                Duration computingTime = Duration.between(startTime, Instant.now());
+                                computingTimeLabel.setText("Computing Time: " + computingTime.toMillis() + " ms");
+                            }
+                        }
+                    });
+                    computingTimer.start();
+
                 } catch (Exception ex) {
                     outputArea.append("Error: " + ex.getMessage() + "\n");
                     // Still make sure to signal the end of the search in case of error
-                    //searchFinished();
+                    searchFinished();
                 }
             }
         });
@@ -177,11 +188,16 @@ public class MainGUI {
                         foundPdfFilesLabel.setText("Found PDF files: 0");
                         computingTimeLabel.setText("Computing Time: 0 ms");
 
+                        // Stop the computingTimer when the search is stopped
+                        if (computingTimer != null) {
+                            computingTimer.stop();
+                        }
+
                         // Reset search variables
                         isSuspended = false;
 
                         // Reset start time for computing time
-                        startTime = 0;
+                        startTime = null;
 
                         stopButton.setEnabled(false);
                         resumeButton.setEnabled(false);
@@ -292,9 +308,9 @@ public class MainGUI {
         closeOutputThread = true;
         isSuspended = false;
         // Compute and update the computing time label
-        long endTime = System.nanoTime();
-        long computingTimeNano = endTime - startTime;
-        double computingTimeMillis = computingTimeNano / 1_000_000.0;
+        Instant endTime = Instant.now();
+        Duration computingTime = Duration.between(startTime, endTime);
+        long computingTimeMillis = computingTime.toMillis();
         computingTimeLabel.setText("Computing Time: " + computingTimeMillis + " ms");
 
         // Enable the "Stop" button again when the search is finished

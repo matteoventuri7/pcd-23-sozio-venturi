@@ -12,5 +12,6 @@
     <orderEntry type="module" module-name="_2_virtual_threads" />
     <orderEntry type="module" module-name="_3_task" />
     <orderEntry type="module" module-name="_3_task" />
+    <orderEntry type="library" name="pdfbox-2.0.29" level="project" />
   </component>
 </module>
