@@ -8,4 +8,6 @@ public interface IWordSearcher extends AutoCloseable{
     void stop();
     void pause();
     void resume() throws IOException;
+
+    boolean isFinished();
 }

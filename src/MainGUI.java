@@ -17,6 +17,8 @@ public class MainGUI {
     private static JLabel computingTimeLabel; // New label for computing time
     private static JButton stopButton;
     private static JButton startButton;
+    private static JButton suspendButton;
+    private static JButton resumeButton;
     private static String keyword;
     private static volatile boolean isSuspended = false;
     private static JComboBox<String> emptySelect;
@@ -59,8 +61,8 @@ public class MainGUI {
         JTextField keywordField = new JTextField("ciao", 20);
         startButton = new JButton("Start");
         stopButton = new JButton("Stop");
-        JButton suspendButton = new JButton("Suspend");
-        JButton resumeButton = new JButton("Resume");
+        suspendButton = new JButton("Suspend");
+        resumeButton = new JButton("Resume");
 
         totalFilesLabel = new JLabel("Total files: 0");
         foundPdfFilesLabel = new JLabel("Found PDF files: 0");
@@ -217,7 +219,7 @@ public class MainGUI {
     }
 
     private static void startOutputArea() {
-        if(updateOutputAreaThread != null){
+        if (updateOutputAreaThread != null) {
             try {
                 updateOutputAreaThread.join();
             } catch (InterruptedException e) {
@@ -232,6 +234,10 @@ public class MainGUI {
                 while (true) {
                     if (closeOutputThread) {
                         break;
+                    }
+
+                    if (s != null && s.isFinished()) {
+                        searchFinished();
                     }
 
                     // Update the GUI with the search results
@@ -265,15 +271,17 @@ public class MainGUI {
 
     // Method to signal the end of the search
     private static void searchFinished() {
-        if (updateOutputAreaThread != null) {
-            // Reset the flags to indicate that the search has ended and can be resumed again
-            closeOutputThread = true;
-            isSuspended = false;
-            // Compute and update the computing time label
-            long endTime = System.nanoTime();
-            long computingTimeNano = endTime - startTime;
-            double computingTimeMillis = computingTimeNano / 1_000_000.0;
-            computingTimeLabel.setText("Computing Time: " + computingTimeMillis + " ms");
-        }
+        startButton.setEnabled(true);
+        stopButton.setEnabled(false);
+        resumeButton.setEnabled(false);
+        suspendButton.setEnabled(false);
+        // Reset the flags to indicate that the search has ended and can be resumed again
+        closeOutputThread = true;
+        isSuspended = false;
+        // Compute and update the computing time label
+        long endTime = System.nanoTime();
+        long computingTimeNano = endTime - startTime;
+        double computingTimeMillis = computingTimeNano / 1_000_000.0;
+        computingTimeLabel.setText("Computing Time: " + computingTimeMillis + " ms");
     }
 }

@@ -1,12 +1,11 @@
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
 public class VirtualThreadFileSearcher extends AFilePDFSearcher {
     private ExecutorService _threadPool;
-    private SearchResult _searchResult;
 
     /**
      * @param start The initial path from start
@@ -16,7 +15,7 @@ public class VirtualThreadFileSearcher extends AFilePDFSearcher {
     }
 
     @Override
-    protected void foundPDFFile(Path file) {
+    protected void onFoundPDFFile(Path file) {
         _threadPool.execute(() -> {
             try {
                 System.out.println("Sleeping...");
@@ -30,8 +29,17 @@ public class VirtualThreadFileSearcher extends AFilePDFSearcher {
     }
 
     @Override
+    protected void onSearchFilesFinished() {
+        _threadPool.shutdown();
+    }
+
+    @Override
+    public boolean isFinished() {
+        return _threadPool.isTerminated();
+    }
+
+    @Override
     public void search() throws IOException {
-        _searchResult = new SearchResult();
         _threadPool = new ForkJoinPool(); // Use ForkJoinPool for virtual threads on JDK < 18
         start();
     }

@@ -1,5 +1,7 @@
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
@@ -14,33 +16,35 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
     }
 
     @Override
-    protected void foundPDFFile(Path file) throws RejectedExecutionException {
+    protected void onFoundPDFFile(Path file) throws RejectedExecutionException {
         _threadPool.execute(() -> {
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            _serchResult.addResult(file);
+            _searchResult.addResult(file);
         });
     }
 
     @Override
+    protected void onSearchFilesFinished() {
+        _threadPool.shutdown();
+    }
+
+    @Override
+    public boolean isFinished() {
+        return _threadPool.isTerminated();
+    }
+
+    @Override
     public void search() throws IOException {
-        _serchResult = new SearchResult();
         start();
     }
 
     @Override
     public void close() throws Exception {
         super.close();
-        _threadPool.shutdown(); // Shutdown the thread pool gracefully
-        try {
-            if (!_threadPool.awaitTermination(5, TimeUnit.SECONDS)) {
-                _threadPool.shutdownNow(); // Forcefully shutdown if the threads don't terminate in 5 seconds
-            }
-        } catch (InterruptedException e) {
-            _threadPool.shutdownNow(); // Forcefully shutdown if interrupted during awaitTermination
-        }
+        _threadPool.shutdown();
     }
 }
