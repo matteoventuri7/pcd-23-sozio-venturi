@@ -170,6 +170,19 @@ public class MainGUI {
                         s.stop();
                         closeOutputThread = true;
                         System.out.println("STOPPED");
+
+                        // Reset output and values
+                        outputArea.setText("");
+                        totalFilesLabel.setText("Total files: 0");
+                        foundPdfFilesLabel.setText("Found PDF files: 0");
+                        computingTimeLabel.setText("Computing Time: 0 ms");
+
+                        // Reset search variables
+                        isSuspended = false;
+
+                        // Reset start time for computing time
+                        startTime = 0;
+
                         stopButton.setEnabled(false);
                         resumeButton.setEnabled(false);
                         suspendButton.setEnabled(false);
@@ -283,5 +296,8 @@ public class MainGUI {
         long computingTimeNano = endTime - startTime;
         double computingTimeMillis = computingTimeNano / 1_000_000.0;
         computingTimeLabel.setText("Computing Time: " + computingTimeMillis + " ms");
+
+        // Enable the "Stop" button again when the search is finished
+        stopButton.setEnabled(true);
     }
 }
