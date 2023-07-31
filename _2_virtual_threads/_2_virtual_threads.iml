@@ -9,5 +9,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="core" />
     <orderEntry type="module" module-name="core" />
+    <orderEntry type="module" module-name="_1_multi_threads" />
   </component>
 </module>

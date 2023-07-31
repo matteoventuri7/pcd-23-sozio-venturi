@@ -3,6 +3,7 @@ import org.apache.pdfbox.text.PDFTextStripper;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 
 public abstract class WordSearchPDFFileSearcher extends AFilePDFSearcher {
 
@@ -16,7 +17,7 @@ public abstract class WordSearchPDFFileSearcher extends AFilePDFSearcher {
     }
 
     @Override
-    protected void onFoundPDFFile(Path file) {
+    protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) {
         try (PDDocument document = PDDocument.load(file.toFile())) {
             PDFTextStripper textStripper = new PDFTextStripper();
             String content = textStripper.getText(document).toLowerCase();
@@ -41,11 +42,6 @@ public abstract class WordSearchPDFFileSearcher extends AFilePDFSearcher {
             }
         }
         return count;
-    }
-
-    @Override
-    protected void onSearchFilesFinished() {
-        System.out.println("Search is finished. Total occurrences of the word '" + _searchWord + "': " + _occurrences);
     }
 
     public int getTotalOccurrences() {

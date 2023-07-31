@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -22,9 +23,6 @@ public class MainGUI {
     private static String keyword;
     private static volatile boolean isSuspended = false;
     private static JComboBox<String> emptySelect;
-    private static VirtualThreadFileSearcher virtualThreadFileSearcher;
-    private static Timer computingTimer; // Timer to measure computing time
-    private static Instant startTime; // Variable to store the start time
 
     public static void main(String[] args) {
         JFrame frame = new JFrame("File Search GUI");
@@ -57,7 +55,7 @@ public class MainGUI {
 
         JPanel inputPanel = new JPanel();
         inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
-        JTextField folderField = new JTextField("/Users/diegosozio/Documents/PCD/test", 20);
+        JTextField folderField = new JTextField("C:\\test", 20);
         JTextField keywordField = new JTextField("ciao", 20);
         startButton = new JButton("Start");
         stopButton = new JButton("Stop");
@@ -115,13 +113,10 @@ public class MainGUI {
                         s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
                         break;
                     case "Approach: Virtual Thread":
-                        if (virtualThreadFileSearcher == null) {
-                            virtualThreadFileSearcher = new VirtualThreadFileSearcher(Path.of(folderPath), keyword);
-                        }
-                        s = virtualThreadFileSearcher;
+                        s = new VirtualThreadFileSearcher(Path.of(folderPath), keyword);
                         break;
                     case "Approach: Task Java": // Create the Task Java approach instance
-                        s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
+                        s = null;
                         break;
                     default:
                         break;
@@ -132,40 +127,29 @@ public class MainGUI {
         startButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                startOutputArea();
                 // Store the start time when the "Start" button is pressed
                 String folderPath = folderField.getText();
                 keyword = keywordField.getText().trim(); // Save the searched keyword
-                startTime = Instant.now(); // Record the start time
+
                 stopButton.setEnabled(true);
                 suspendButton.setEnabled(true);
                 stopButton.setEnabled(true);
                 startButton.setEnabled(false);
+
                 System.out.println("STARTED");
 
-                // Clear the output area before starting a new search
-                outputArea.setText("");
-                totalFilesLabel.setText("Total files: 0");
-                foundPdfFilesLabel.setText("Found PDF files: 0");
-
                 try {
-                    s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
-                    s.search();
+                    if (s == null) {
+                        s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
+                    }
+                    s.start();
 
-                    // Start the computingTimer when the search starts
-                    computingTimer = new Timer(100, new ActionListener() {
-                        @Override
-                        public void actionPerformed(ActionEvent e) {
-                            // Update the computing time label with the elapsed time
-                            if (s != null && !s.isFinished()) {
-                                Duration computingTime = Duration.between(startTime, Instant.now());
-                                computingTimeLabel.setText("Computing Time: " + computingTime.toMillis() + " ms");
-                            }
-                        }
-                    });
-                    computingTimer.start();
-
+                    startOutputArea();
                 } catch (Exception ex) {
+                    try {
+                        s.close();
+                    } catch (Exception exc) {
+                    }
                     outputArea.append("Error: " + ex.getMessage() + "\n");
                     // Still make sure to signal the end of the search in case of error
                     searchFinished();
@@ -182,22 +166,8 @@ public class MainGUI {
                         closeOutputThread = true;
                         System.out.println("STOPPED");
 
-                        // Reset output and values
-                        outputArea.setText("");
-                        totalFilesLabel.setText("Total files: 0");
-                        foundPdfFilesLabel.setText("Found PDF files: 0");
-                        computingTimeLabel.setText("Computing Time: 0 ms");
-
-                        // Stop the computingTimer when the search is stopped
-                        if (computingTimer != null) {
-                            computingTimer.stop();
-                        }
-
                         // Reset search variables
                         isSuspended = false;
-
-                        // Reset start time for computing time
-                        startTime = null;
 
                         stopButton.setEnabled(false);
                         resumeButton.setEnabled(false);
@@ -228,18 +198,16 @@ public class MainGUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (s != null) {
-                    s.pause();
+                    try {
+                        s.resume();
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
                     isSuspended = false; // Reset the flag to indicate the search is no longer suspended
                     System.out.println("RESUMED");
                     stopButton.setEnabled(true);
                     suspendButton.setEnabled(true);
                     resumeButton.setEnabled(false);
-
-                    // Remove the output area text when "Resume" is pressed
-                    outputArea.setText("");
-                    totalFilesLabel.setText("Total files: 0");
-                    foundPdfFilesLabel.setText("Found PDF files: 0");
-                    keyword = keywordField.getText().trim(); // Update the searched keyword
                 }
             }
         });
@@ -255,42 +223,53 @@ public class MainGUI {
                 throw new RuntimeException(e);
             }
         }
+
+        // Clear the output area before starting a new search
+        outputArea.setText("");
+        totalFilesLabel.setText("Total files: 0");
+        foundPdfFilesLabel.setText("Found PDF files: 0");
+
         updateOutputAreaThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 closeOutputThread = false;
 
-                while (true) {
-                    if (closeOutputThread) {
-                        break;
-                    }
+                try {
 
-                    if (s != null && s.isFinished()) {
-                        searchFinished();
-                    }
+                    while (true) {
+                        if (closeOutputThread) {
+                            break;
+                        }
 
-                    // Update the GUI with the search results
-                    if (!isSuspended && s != null && s.getResult() != null) {
-                        var result = s.getResult();
-                        SwingUtilities.invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                String listOfFiles = result.getFiles()
-                                        .stream()
-                                        .map(Path::toString)
-                                        .collect(Collectors.joining("\n"));
-                                outputArea.setText(listOfFiles);
-                                totalFilesLabel.setText("Total files: " + result.getTotalFiles());
-                                foundPdfFilesLabel.setText("Found PDF files: " + result.getFiles().size());
-                            }
-                        });
-                    }
+                        if (s != null && s.getResult().IsFinished()) {
+                            searchFinished();
+                        }
 
-                    try {
-                        Thread.sleep(100); // Add a short delay to avoid busy-waiting
-                    } catch (InterruptedException e) {
-                        // It's okay
+                        // Update the GUI with the search results
+                        if (!isSuspended && s != null && s.getResult() != null) {
+                            var result = s.getResult();
+                            SwingUtilities.invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    String listOfFiles = result.getFiles()
+                                            .stream()
+                                            .map(Path::toString)
+                                            .collect(Collectors.joining("\n"));
+                                    outputArea.setText(listOfFiles);
+                                    totalFilesLabel.setText("Total files: " + result.getTotalFiles());
+                                    foundPdfFilesLabel.setText("Found PDF files: " + result.getFiles().size());
+                                }
+                            });
+                        }
+
+                        try {
+                            Thread.sleep(100); // Add a short delay to avoid busy-waiting
+                        } catch (InterruptedException e) {
+                            // It's okay
+                        }
                     }
+                } catch (Exception ex) {
+                    System.err.println(ex.toString());
                 }
             }
         });
@@ -307,13 +286,7 @@ public class MainGUI {
         // Reset the flags to indicate that the search has ended and can be resumed again
         closeOutputThread = true;
         isSuspended = false;
-        // Compute and update the computing time label
-        Instant endTime = Instant.now();
-        Duration computingTime = Duration.between(startTime, endTime);
-        long computingTimeMillis = computingTime.toMillis();
-        computingTimeLabel.setText("Computing Time: " + computingTimeMillis + " ms");
 
-        // Enable the "Stop" button again when the search is finished
-        stopButton.setEnabled(true);
+        computingTimeLabel.setText("Computing Time: " + s.getElapsedTime() + " ms");
     }
 }

@@ -5,6 +5,8 @@ public class SearchResult {
     private final ArrayList<Path> files = new ArrayList<>();
     private long totalFiles;
 
+    boolean searchIsFinished;
+
     public synchronized void addResult(Path file) {
         files.add(file);
     }
@@ -23,5 +25,9 @@ public class SearchResult {
 
     public long getTotalFiles() {
         return totalFiles;
+    }
+
+    public boolean IsFinished(){
+        return searchIsFinished && getTotalFiles() == files.size();
     }
 }

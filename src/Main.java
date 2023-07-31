@@ -50,7 +50,7 @@ public class Main {
         }
 
         // Esegui l'approccio selezionato
-        s.search();
+        s.start();
         Thread.sleep(10);
         s.pause();
         System.out.println("MAIN-pause");

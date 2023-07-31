@@ -3,11 +3,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 
 public interface IWordSearcher extends AutoCloseable{
-    void search() throws IOException, NullPointerException, SecurityException;
+    void start();
     SearchResult getResult();
     void stop();
     void pause();
     void resume() throws IOException;
-
-    boolean isFinished();
+    long getElapsedTime();
 }

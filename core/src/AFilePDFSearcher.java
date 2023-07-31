@@ -4,10 +4,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -20,11 +19,12 @@ public abstract class AFilePDFSearcher
     protected SearchResult _searchResult;
     private String _word;
     protected boolean _stop = false, _pause = false;
-    private HashMap<Path, Boolean> dirProcessedStatus = new HashMap<Path, Boolean>();
-    protected HashSet<Pair<Path, BasicFileAttributes>> _bufferFiles = new HashSet<>();
-    protected HashSet<Path> _bufferDirectories = new HashSet<>();
+    protected ConcurrentHashMap<Path, BasicFileAttributes> _bufferFiles = new ConcurrentHashMap<>();
+    protected ConcurrentHashMap<Path, Boolean> _threadStatus = new ConcurrentHashMap<>();
+    protected ConcurrentLinkedQueue<Path> _bufferDirectories = new ConcurrentLinkedQueue<>();
     protected long _bufferTotalFiles = 0;
-    private ExecutorService _threadPool;
+    private final ExecutorService _threadPool;
+    protected Cron _cron;
 
     /**
      * @param start The initial path from start
@@ -34,48 +34,44 @@ public abstract class AFilePDFSearcher
         _word = word;
         _threadPool = Executors.newSingleThreadExecutor();
         _searchResult = new SearchResult();
+        _cron = new Cron();
     }
 
-    private boolean isSearchFinished() {
-        if (dirProcessedStatus.isEmpty()) return false;
-        return dirProcessedStatus.values().stream().allMatch(x -> x);
-    }
-
-    protected void reset() {
+    protected void resetLists() {
         // clear lists when we start again after a pause
         _bufferFiles.clear();
         _bufferDirectories.clear();
-        _stop = false;
-        _pause = false;
-        _searchResult = new SearchResult();
     }
 
     /**
      * Start to visit the directory
      *
-     * @throws IOException
      * @throws NullPointerException
      * @throws SecurityException
      */
-    public void start() throws IOException, NullPointerException, SecurityException {
-        dirProcessedStatus.clear();
+    public void start() {
+        _stop = false;
 
         if (_pause) {
+            _pause = false;
             // resuming files
             _searchResult.IncreaseTotalFiles(_bufferTotalFiles);
-            for (Pair<Path, BasicFileAttributes> dataFile : new ArrayList<>(_bufferFiles)) {
-                visitFileImpl(dataFile.item1(), dataFile.item2());
-                _bufferFiles.remove(dataFile);
+            for (Path pathFile : _bufferFiles.keySet()) {
+                visitFileImpl(pathFile, _bufferFiles.get(pathFile), false);
+                _bufferFiles.remove(pathFile);
             }
+
             // resuming directories
-            for (Path dir : new ArrayList<>(_bufferDirectories)) {
+            for (Path dir : _bufferDirectories) {
                 _bufferDirectories.remove(dir);
                 startFileWalker(dir);
             }
-            reset();
+            resetLists();
         } else {
+            _cron.start();
+            _searchResult = new SearchResult();
             // fresh start or start again after a stop
-            reset();
+            resetLists();
             Objects.requireNonNull(_start);
             startFileWalker(_start);
         }
@@ -83,13 +79,12 @@ public abstract class AFilePDFSearcher
 
     private void startFileWalker(Path startDir) {
         _threadPool.execute(() -> {
+            _threadStatus.put(startDir, false);
             try {
-                dirProcessedStatus.put(startDir, false);
-
                 Files.walkFileTree(startDir, new SimpleFileVisitor<Path>() {
                     @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                        visitFileImpl(file, attrs);
+                        visitFileImpl(file, attrs, true);
                         return super.visitFile(file, attrs);
                     }
 
@@ -107,10 +102,10 @@ public abstract class AFilePDFSearcher
                     @Override
                     public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
                         if (dir.equals(startDir)) {
-                            dirProcessedStatus.put(startDir, true);
-                            if(isSearchFinished()){
-                                System.out.println("Search is finish!!!");
-                                onSearchFilesFinished();
+                            _threadStatus.put(startDir, true);
+                            getResult().searchIsFinished = _threadStatus.values().stream().allMatch(x -> x);
+                            if (getResult().searchIsFinished) {
+                                System.out.println("Search finish");
                             }
                         }
                         if (_stop) return FileVisitResult.TERMINATE;
@@ -120,31 +115,34 @@ public abstract class AFilePDFSearcher
             } catch (Exception e) {
                 // some errors here but prevent block
                 System.out.println(e.toString());
-                dirProcessedStatus.put(startDir, true);
             }
         });
     }
 
-    private void visitFileImpl(Path file, BasicFileAttributes attrs) {
+    private void visitFileImpl(Path file, BasicFileAttributes attrs, boolean isNew) {
         System.out.println("Visit file - Stop:" + _stop + ";Pause:" + _pause);
         if (!_stop) {
             if (_pause) {
                 _bufferTotalFiles++;
-            } else {
+            } else if (isNew) {
                 _searchResult.IncreaseTotalFiles();
             }
             if (!attrs.isSymbolicLink() &&
                     attrs.isRegularFile() &&
                     getExtensionFile(file.getFileName().toString()).equals("pdf")) {
                 if (_pause) {
-                    _bufferFiles.add(new Pair<>(file, attrs));
+                    _bufferFiles.put(file, attrs);
                     System.out.println("Buffered file " + file.toString());
                 } else {
                     System.out.println("Handling file " + file.toString());
-                    onFoundPDFFile(file);
+                    onFoundPDFFile(file, attrs);
                 }
             }
         }
+    }
+
+    protected void EnqueueFile(Path file, BasicFileAttributes attrs) {
+        _bufferFiles.put(file, attrs);
     }
 
     /**
@@ -152,12 +150,7 @@ public abstract class AFilePDFSearcher
      *
      * @param file The found file
      */
-    protected abstract void onFoundPDFFile(Path file);
-
-    /**
-     * When the walker finish to search file this method is invoked
-     */
-    protected abstract void onSearchFilesFinished();
+    protected abstract void onFoundPDFFile(Path file, BasicFileAttributes attrs);
 
     private String getExtensionFile(String filename) {
         return filename.substring(filename.lastIndexOf(".") + 1);
@@ -179,6 +172,10 @@ public abstract class AFilePDFSearcher
 
     public SearchResult getResult() {
         return _searchResult;
+    }
+
+    public long getElapsedTime() {
+        return _cron.getTime();
     }
 
     @Override
