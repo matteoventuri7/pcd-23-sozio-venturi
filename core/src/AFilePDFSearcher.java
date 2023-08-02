@@ -28,6 +28,7 @@ public abstract class AFilePDFSearcher
     protected long _bufferTotalFiles = 0;
     private final ExecutorService _threadPool;
     protected Cron _cron;
+    protected IGuiRegistrable _guiRegistrable;
 
     /**
      * @param start The initial path from start
@@ -136,6 +137,9 @@ public abstract class AFilePDFSearcher
                     System.out.println("Handling file " + file.toString());
                     if (isNew) {
                         _searchResult.IncreaseTotalFiles();
+                        if(_guiRegistrable != null){
+                            _guiRegistrable.onNewFoundFile(_searchResult.getTotalFiles());
+                        }
                     }
                     onFoundPDFFile(file, attrs);
                 }
@@ -196,5 +200,9 @@ public abstract class AFilePDFSearcher
             String text = stripper.getText(document);
             return text.toLowerCase().contains(" " + _word.toLowerCase() + " ");
         }
+    }
+
+    public void register(IGuiRegistrable registrable){
+        _guiRegistrable = registrable;
     }
 }

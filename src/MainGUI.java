@@ -9,9 +9,7 @@ import java.time.Instant;
 import java.util.stream.Collectors;
 
 public class MainGUI {
-    private static boolean closeOutputThread = false;
     private static IWordSearcher s;
-    private static Thread updateOutputAreaThread;
     private static JTextArea outputArea;
     private static JLabel totalFilesLabel;
     private static JLabel foundPdfFilesLabel;
@@ -20,7 +18,6 @@ public class MainGUI {
     private static JButton startButton;
     private static JButton suspendButton;
     private static JButton resumeButton;
-    private static volatile boolean isSuspended = false;
     private static JComboBox<String> emptySelect;
 
     public static void main(String[] args) {
@@ -29,21 +26,11 @@ public class MainGUI {
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
-                closeOutputThread = true;
-
                 if (s != null) {
                     try {
                         s.stop();
                     } catch (Exception e) {
                         throw new RuntimeException(e);
-                    }
-                }
-
-                if (updateOutputAreaThread != null) {
-                    try {
-                        updateOutputAreaThread.join(Duration.ofSeconds(5));
-                    } catch (InterruptedException e) {
-                        // ops
                     }
                 }
             }
@@ -128,7 +115,10 @@ public class MainGUI {
                     instanziateSearcher(folderPath, emptySelect.getSelectedItem().toString(), keyword);
                     s.start();
 
-                    startOutputArea();
+                    // Clear the output area before starting a new search
+                    outputArea.setText("");
+                    totalFilesLabel.setText("Total files: 0");
+                    foundPdfFilesLabel.setText("Found PDF files: 0");
                 } catch (Exception ex) {
                     try {
                         s.close();
@@ -147,11 +137,7 @@ public class MainGUI {
                 if (s != null) {
                     try {
                         s.stop();
-                        closeOutputThread = true;
                         System.out.println("STOPPED");
-
-                        // Reset search variables
-                        isSuspended = false;
 
                         // Clear the output area
                         outputArea.setText("");
@@ -177,7 +163,7 @@ public class MainGUI {
             public void actionPerformed(ActionEvent e) {
                 if (s != null) {
                     s.pause();
-                    isSuspended = true; // Set the flag to indicate the search is suspended
+
                     System.out.println("SUSPENDED");
                     stopButton.setEnabled(false);
                     suspendButton.setEnabled(false);
@@ -195,7 +181,7 @@ public class MainGUI {
                     } catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
-                    isSuspended = false; // Reset the flag to indicate the search is no longer suspended
+
                     System.out.println("RESUMED");
                     stopButton.setEnabled(true);
                     suspendButton.setEnabled(true);
@@ -221,68 +207,30 @@ public class MainGUI {
             default:
                 break;
         }
-    }
 
-    private static void startOutputArea() {
-        if (updateOutputAreaThread != null) {
-            try {
-                updateOutputAreaThread.join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        // Clear the output area before starting a new search
-        outputArea.setText("");
-        totalFilesLabel.setText("Total files: 0");
-        foundPdfFilesLabel.setText("Found PDF files: 0");
-
-        updateOutputAreaThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                closeOutputThread = false;
-
-                try {
-
-                    while (true) {
-                        if (closeOutputThread) {
-                            break;
-                        }
-
-                        if (s != null && s.getResult().IsFinished()) {
-                            searchFinished();
-                        }
-
-                        // Update the GUI with the search results
-                        if (!isSuspended && s != null && s.getResult() != null) {
-                            var result = s.getResult();
-                            SwingUtilities.invokeLater(new Runnable() {
-                                @Override
-                                public void run() {
-                                    String listOfFiles = result.getFiles()
-                                            .stream()
-                                            .map(Path::toString)
-                                            .collect(Collectors.joining("\n"));
-                                    outputArea.setText(listOfFiles);
-                                    totalFilesLabel.setText("Total files: " + result.getTotalFiles());
-                                    foundPdfFilesLabel.setText("Found PDF files: " + result.getFiles().size());
-                                }
-                            });
-                        }
-
-                        try {
-                            Thread.sleep(100); // Add a short delay to avoid busy-waiting
-                        } catch (InterruptedException e) {
-                            // It should not happen.
-                        }
-                    }
-                } catch (Exception ex) {
-                    System.err.println(ex.toString());
+        if(s != null){
+            s.register(new IGuiRegistrable() {
+                @Override
+                public void onNewResultFile(ResultEventArgs ev) {
+                    SwingUtilities.invokeLater(() -> {
+                        outputArea.append(ev.getFile().toString() + System.lineSeparator());
+                        foundPdfFilesLabel.setText("Found PDF files: " + ev.getTotalResultsFiles());
+                    });
                 }
-            }
-        });
-        updateOutputAreaThread.setDaemon(true);
-        updateOutputAreaThread.start();
+
+                @Override
+                public void onNewFoundFile(long totalFiles) {
+                    SwingUtilities.invokeLater(() -> {
+                        totalFilesLabel.setText("Total files: " + totalFiles);
+                    });
+                }
+
+                @Override
+                public void onFinish(SearchResult result) {
+                    searchFinished();
+                }
+            });
+        }
     }
 
     // Method to signal the end of the search
@@ -291,9 +239,6 @@ public class MainGUI {
         stopButton.setEnabled(false);
         resumeButton.setEnabled(false);
         suspendButton.setEnabled(false);
-        // Reset the flags to indicate that the search has ended and can be resumed again
-        closeOutputThread = true;
-        isSuspended = false;
 
         computingTimeLabel.setText("Computing Time: " + s.getElapsedTime() + " ms");
     }

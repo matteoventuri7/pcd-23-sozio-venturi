@@ -9,4 +9,5 @@ public interface IWordSearcher extends AutoCloseable{
     void pause();
     void resume() throws IOException;
     long getElapsedTime();
+    void register(IGuiRegistrable registrable);
 }
