@@ -1,4 +1,5 @@
 import java.nio.file.Path;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 
 public class VirtualThreadFileSearcher extends MultiThreadFileSearcher {
@@ -12,7 +13,7 @@ public class VirtualThreadFileSearcher extends MultiThreadFileSearcher {
 
     @Override
     public void start() {
-        _threadPool = new ForkJoinPool(); // Use ForkJoinPool for virtual threads on JDK < 18
+        _threadPool = Executors.newVirtualThreadPerTaskExecutor();
         super.start();
     }
 }
