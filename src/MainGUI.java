@@ -100,7 +100,7 @@ public class MainGUI {
         emptySelect.addItem("Approach: Task Java");
 
         // Create the computing time label
-        computingTimeLabel = new JLabel("Computing Time: ");
+        computingTimeLabel = new JLabel("");
         inputPanel.add(computingTimeLabel);
 
         emptySelect.addActionListener(new ActionListener() {
@@ -127,6 +127,7 @@ public class MainGUI {
         startButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                computingTimeLabel.setText("");
                 // Store the start time when the "Start" button is pressed
                 String folderPath = folderField.getText();
                 keyword = keywordField.getText().trim(); // Save the searched keyword
@@ -265,7 +266,7 @@ public class MainGUI {
                         try {
                             Thread.sleep(100); // Add a short delay to avoid busy-waiting
                         } catch (InterruptedException e) {
-                            // It's okay
+                            // It should not happen.
                         }
                     }
                 } catch (Exception ex) {
