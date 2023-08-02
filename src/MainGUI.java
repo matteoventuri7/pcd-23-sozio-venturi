@@ -55,7 +55,7 @@ public class MainGUI {
 
         JPanel inputPanel = new JPanel();
         inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
-        JTextField folderField = new JTextField("C:\\test", 20);
+        JTextField folderField = new JTextField("/Users/diegosozio/Documents/PCD/test", 20);
         JTextField keywordField = new JTextField("ciao", 20);
         startButton = new JButton("Start");
         stopButton = new JButton("Stop");
@@ -169,6 +169,13 @@ public class MainGUI {
                         // Reset search variables
                         isSuspended = false;
 
+                        // Clear the output area
+                        outputArea.setText("");
+
+                        // Reset labels
+                        totalFilesLabel.setText("Total files: 0");
+                        foundPdfFilesLabel.setText("Found PDF files: 0");
+
                         stopButton.setEnabled(false);
                         resumeButton.setEnabled(false);
                         suspendButton.setEnabled(false);
@@ -179,6 +186,7 @@ public class MainGUI {
                 }
             }
         });
+
 
         suspendButton.addActionListener(new ActionListener() {
             @Override
