@@ -20,7 +20,6 @@ public class MainGUI {
     private static JButton startButton;
     private static JButton suspendButton;
     private static JButton resumeButton;
-    private static String keyword;
     private static volatile boolean isSuspended = false;
     private static JComboBox<String> emptySelect;
 
@@ -106,21 +105,7 @@ public class MainGUI {
         emptySelect.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String folderPath = folderField.getText();
-                String selectedApproach = (String) emptySelect.getSelectedItem();
-                switch (selectedApproach) {
-                    case "Approach: Multithreaded":
-                        s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
-                        break;
-                    case "Approach: Virtual Thread":
-                        s = new VirtualThreadFileSearcher(Path.of(folderPath), keyword);
-                        break;
-                    case "Approach: Task Java": // Create the Task Java approach instance
-                        s = null;
-                        break;
-                    default:
-                        break;
-                }
+                instanziateSearcher(folderField.getText(), emptySelect.getSelectedItem().toString(), keywordField.getText().trim());
             }
         });
 
@@ -130,7 +115,7 @@ public class MainGUI {
                 computingTimeLabel.setText("");
                 // Store the start time when the "Start" button is pressed
                 String folderPath = folderField.getText();
-                keyword = keywordField.getText().trim(); // Save the searched keyword
+                String keyword = keywordField.getText().trim(); // Save the searched keyword
 
                 stopButton.setEnabled(true);
                 suspendButton.setEnabled(true);
@@ -140,9 +125,7 @@ public class MainGUI {
                 System.out.println("STARTED");
 
                 try {
-                    if (s == null) {
-                        s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
-                    }
+                    instanziateSearcher(folderPath, emptySelect.getSelectedItem().toString(), keyword);
                     s.start();
 
                     startOutputArea();
@@ -222,6 +205,22 @@ public class MainGUI {
         });
 
         frame.setVisible(true);
+    }
+
+    private static void instanziateSearcher(String folderPath, String selectedApproach, String keyword) {
+        switch (selectedApproach) {
+            case "Approach: Multithreaded":
+                s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
+                break;
+            case "Approach: Virtual Thread":
+                s = new VirtualThreadFileSearcher(Path.of(folderPath), keyword);
+                break;
+            case "Approach: Task Java": // Create the Task Java approach instance
+                s = null;
+                break;
+            default:
+                break;
+        }
     }
 
     private static void startOutputArea() {

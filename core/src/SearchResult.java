@@ -6,6 +6,7 @@ public class SearchResult {
     private long totalFiles;
 
     boolean searchIsFinished;
+    boolean computationIsFinished;
 
     public synchronized void addResult(Path file) {
         files.add(file);
@@ -28,6 +29,6 @@ public class SearchResult {
     }
 
     public boolean IsFinished(){
-        return searchIsFinished && getTotalFiles() == files.size();
+        return searchIsFinished && computationIsFinished;
     }
 }

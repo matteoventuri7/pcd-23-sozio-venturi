@@ -11,8 +11,5 @@
     <orderEntry type="module" module-name="core" />
     <orderEntry type="module" module-name="_2_virtual_threads" />
     <orderEntry type="module" module-name="_3_task" />
-    <orderEntry type="module" module-name="_3_task" />
-    <orderEntry type="library" name="commons-logging-1.21" level="project" />
-    <orderEntry type="library" name="fontbox-2.0.29" level="project" />
   </component>
 </module>

@@ -1,3 +1,6 @@
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -122,19 +125,18 @@ public abstract class AFilePDFSearcher
     private void visitFileImpl(Path file, BasicFileAttributes attrs, boolean isNew) {
         System.out.println("Visit file - Stop:" + _stop + ";Pause:" + _pause);
         if (!_stop) {
-            if (_pause) {
-                _bufferTotalFiles++;
-            } else if (isNew) {
-                _searchResult.IncreaseTotalFiles();
-            }
             if (!attrs.isSymbolicLink() &&
                     attrs.isRegularFile() &&
                     getExtensionFile(file.getFileName().toString()).equals("pdf")) {
                 if (_pause) {
+                    _bufferTotalFiles++;
                     _bufferFiles.put(file, attrs);
                     System.out.println("Buffered file " + file.toString());
                 } else {
                     System.out.println("Handling file " + file.toString());
+                    if (isNew) {
+                        _searchResult.IncreaseTotalFiles();
+                    }
                     onFoundPDFFile(file, attrs);
                 }
             }
@@ -181,5 +183,18 @@ public abstract class AFilePDFSearcher
     @Override
     public void close() throws Exception {
         _threadPool.close();
+    }
+
+    protected boolean searchWordInPDF(Path file) throws IOException {
+        // Implement your code to search the word in the PDF here
+        // You can use libraries like Apache PDFBox to extract text from the PDF and search the word.
+        // Return true if word is found, false otherwise.
+        // Sample code:
+
+        try(PDDocument document = PDDocument.load(file.toFile())) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            String text = stripper.getText(document);
+            return text.toLowerCase().contains(" " + _word.toLowerCase() + " ");
+        }
     }
 }
