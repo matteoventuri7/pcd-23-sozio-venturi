@@ -1,5 +1,6 @@
 // per mac  var s = new MultiThreadFileSearcher(Path.of("/Users/diegosozio/Documents/PCD/test"), "ciao");
 // per windows  var s = new MultiThreadFileSearcher(Path.of("C://test"), "ciao");*/
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Scanner;
@@ -41,58 +42,35 @@ public class Main {
                 return;
         }
 
-        if (s != null) {
-            s.register(new IGuiRegistrable() {
-                @Override
-                public void onNewResultFile(ResultEventArgs ev) {
-                    System.out.println("Found: " + ev.getFile().toString());
-                }
-
-                @Override
-                public void onNewFoundFile(long totalFiles) {
-                    System.out.println("Total files processed: " + totalFiles);
-                }
-
-                @Override
-                public void onFinish(SearchResult result) {
-                    System.out.println("Total files found: " + result.getFiles().size());
-                    System.out.println("Total files processed: " + result.getTotalFiles());
-                    System.out.println("Computing Time: " + s.getElapsedTime() + " ms");
-                }
-            });
-
-            System.out.println("Starting the search...");
-            s.start();
-
-            // Pause after 10 milliseconds
-            sleep(10);
-
-            System.out.println("Pausing the search...");
-            s.pause();
-
-            // Resume after 3000 milliseconds (3 seconds)
-            sleep(3000);
-
-            System.out.println("Resuming the search...");
-            s.resume();
-
-            System.out.println("Closing the search...");
-            try {
-                s.close();
-            } catch (java.io.IOException e) {
-                e.printStackTrace();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+        s.register(new IGuiRegistrable() {
+            @Override
+            public void onNewResultFile(ResultEventArgs ev) {
+                System.out.println("Found: " + ev.getFile().toString());
             }
-        }
-    }
 
-    private static void sleep(int milliseconds) {
-        try {
-            Thread.sleep(milliseconds);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+            @Override
+            public void onNewFoundFile(long totalFiles) {
+                System.out.println("Total files processed: " + totalFiles);
+            }
+
+            @Override
+            public void onFinish(SearchResult result) {
+                System.out.println("Total files found: " + result.getFiles().size());
+                System.out.println("Total files processed: " + result.getTotalFiles());
+                System.out.println("Computing Time: " + s.getElapsedTime() + " ms");
+
+                try {
+                    s.close();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+                System.out.println("Program end");
+            }
+        });
+
+        System.out.println("Starting the search...");
+        s.start();
     }
 }
 
