@@ -107,8 +107,8 @@ public abstract class AFilePDFSearcher
                     public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
                         if (dir.equals(startDir)) {
                             _threadStatus.put(startDir, true);
-                            getResult().searchIsFinished = _threadStatus.values().stream().allMatch(x -> x);
-                            if (getResult().searchIsFinished) {
+                            if (_threadStatus.values().stream().allMatch(x -> x)) {
+                                getResult().setSearchIsFinished();
                                 System.out.println("Search finish");
                             }
                         }
@@ -137,7 +137,7 @@ public abstract class AFilePDFSearcher
                     System.out.println("Handling file " + file.toString());
                     if (isNew) {
                         _searchResult.IncreaseTotalFiles();
-                        if(_guiRegistrable != null){
+                        if (_guiRegistrable != null) {
                             _guiRegistrable.onNewFoundFile(_searchResult.getTotalFiles());
                         }
                     }
@@ -180,7 +180,7 @@ public abstract class AFilePDFSearcher
         return _searchResult;
     }
 
-    public long getElapsedTime() {
+    protected long getElapsedTime() {
         return _cron.getTime();
     }
 
@@ -195,7 +195,7 @@ public abstract class AFilePDFSearcher
         // Return true if word is found, false otherwise.
         // Sample code:
 
-        try(PDDocument document = PDDocument.load(file.toFile())) {
+        try (PDDocument document = PDDocument.load(file.toFile())) {
             PDFTextStripper stripper = new PDFTextStripper();
             String text = stripper.getText(document);
             boolean contains = text.toLowerCase().contains(_word.toLowerCase());
@@ -203,7 +203,7 @@ public abstract class AFilePDFSearcher
         }
     }
 
-    public void register(IGuiRegistrable registrable){
+    public void register(IGuiRegistrable registrable) {
         _guiRegistrable = registrable;
     }
 }

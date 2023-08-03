@@ -57,7 +57,7 @@ public class Main {
             public void onFinish(SearchResult result) {
                 System.out.println("Total files found: " + result.getFiles().size());
                 System.out.println("Total files processed: " + result.getTotalFiles());
-                System.out.println("Computing Time: " + s.getElapsedTime() + " ms");
+                System.out.println("Computing Time: " + result.getElapsedTime() + " ms");
 
                 try {
                     s.close();

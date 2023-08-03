@@ -126,7 +126,7 @@ public class MainGUI {
                     }
                     outputArea.append("Error: " + ex.getMessage() + "\n");
                     // Still make sure to signal the end of the search in case of error
-                    searchFinished();
+                    searchFinished(s.getResult());
                 }
             }
         });
@@ -227,19 +227,21 @@ public class MainGUI {
 
                 @Override
                 public void onFinish(SearchResult result) {
-                    searchFinished();
+                    SwingUtilities.invokeLater(() -> {
+                        searchFinished(result);
+                    });
                 }
             });
         }
     }
 
     // Method to signal the end of the search
-    private static void searchFinished() {
+    private static void searchFinished(SearchResult result) {
         startButton.setEnabled(true);
         stopButton.setEnabled(false);
         resumeButton.setEnabled(false);
         suspendButton.setEnabled(false);
 
-        computingTimeLabel.setText("Computing Time: " + s.getElapsedTime() + " ms");
+        computingTimeLabel.setText("Computing Time: " + result.getElapsedTime() + " ms");
     }
 }

@@ -4,9 +4,9 @@ import java.util.ArrayList;
 public class SearchResult {
     private final ArrayList<Path> files = new ArrayList<>();
     private long totalFiles;
-
-    boolean searchIsFinished;
-    boolean computationIsFinished;
+    private long elapsedTime;
+    private boolean searchIsFinished;
+    private boolean computationIsFinished;
 
     public synchronized void addResult(Path file) {
         files.add(file);
@@ -30,5 +30,21 @@ public class SearchResult {
 
     public boolean IsFinished(){
         return searchIsFinished && computationIsFinished;
+    }
+
+    public long getElapsedTime() {
+        return elapsedTime;
+    }
+
+    void setElapsedTime(long et){
+        elapsedTime = et;
+    }
+
+    public void setComputationFinished() {
+        computationIsFinished = true;
+    }
+
+    public void setSearchIsFinished() {
+        searchIsFinished = true;
     }
 }

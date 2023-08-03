@@ -46,7 +46,8 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
                 synchronized (workerLock) {
                     nComputedFiles++;
                     if (nComputedFiles == _searchResult.getTotalFiles()) {
-                        _searchResult.computationIsFinished = true;
+                        _searchResult.setComputationFinished();
+                        _searchResult.setElapsedTime(getElapsedTime());
                         _guiRegistrable.onFinish(getResult());
                     }
                 }
