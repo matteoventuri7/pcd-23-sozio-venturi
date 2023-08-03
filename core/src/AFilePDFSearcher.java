@@ -19,16 +19,16 @@ import java.util.concurrent.Executors;
 public abstract class AFilePDFSearcher
         implements IWordSearcher {
     private final Path _start;
-    protected SearchResult _searchResult;
+    private SearchResult _searchResult;
     private String _word;
-    protected boolean _stop = false, _pause = false;
-    protected ConcurrentHashMap<Path, BasicFileAttributes> _bufferFiles = new ConcurrentHashMap<>();
-    protected ConcurrentHashMap<Path, Boolean> _threadStatus = new ConcurrentHashMap<>();
-    protected ConcurrentLinkedQueue<Path> _bufferDirectories = new ConcurrentLinkedQueue<>();
-    protected long _bufferTotalFiles = 0;
+    private boolean _stop = false, _pause = false;
+    private ConcurrentHashMap<Path, BasicFileAttributes> _bufferFiles = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<Path, Boolean> _threadStatus = new ConcurrentHashMap<>();
+    private ConcurrentLinkedQueue<Path> _bufferDirectories = new ConcurrentLinkedQueue<>();
+    private long _bufferTotalFiles = 0;
     private final ExecutorService _threadPool;
-    protected Cron _cron;
-    protected IGuiRegistrable _guiRegistrable;
+    private Cron _cron;
+    private IGuiRegistrable _guiRegistrable;
 
     /**
      * @param start The initial path from start
@@ -147,10 +147,6 @@ public abstract class AFilePDFSearcher
         }
     }
 
-    protected void EnqueueFile(Path file, BasicFileAttributes attrs) {
-        _bufferFiles.put(file, attrs);
-    }
-
     /**
      * Method to implement to handle a new file
      *
@@ -205,5 +201,44 @@ public abstract class AFilePDFSearcher
 
     public void register(IGuiRegistrable registrable) {
         _guiRegistrable = registrable;
+    }
+
+    protected void notifyFinish() {
+        _searchResult.setComputationFinished();
+        _searchResult.setElapsedTime(getElapsedTime());
+        if (_guiRegistrable != null)
+            _guiRegistrable.onFinish(getResult());
+    }
+
+    /**
+     * This method implement the common share logic
+     *
+     * @param file
+     * @param attrs
+     * @return true if the file is worked, false otherwise (i.e. suspended)
+     */
+    protected boolean searchWordInsideFile(Path file, BasicFileAttributes attrs) {
+        if (_pause) {
+            _bufferFiles.put(file, attrs);
+        } else if (!_stop) {
+            // Search the word in the PDF
+            boolean wordFoundInPDF = false;
+            try {
+                wordFoundInPDF = searchWordInPDF(file);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            if (wordFoundInPDF) {
+                _searchResult.addResult(file);
+                if (_guiRegistrable != null) {
+                    _guiRegistrable.onNewResultFile(new ResultEventArgs(file, _searchResult.getTotalFiles(), _searchResult.getFiles().size()));
+                }
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }

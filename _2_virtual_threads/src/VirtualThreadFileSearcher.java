@@ -1,5 +1,6 @@
 import java.nio.file.Path;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class VirtualThreadFileSearcher extends MultiThreadFileSearcher {
 
@@ -11,8 +12,7 @@ public class VirtualThreadFileSearcher extends MultiThreadFileSearcher {
     }
 
     @Override
-    public void start() {
+    protected void instantiateThreads() {
         _threadPool = Executors.newVirtualThreadPerTaskExecutor();
-        super.start();
     }
 }
