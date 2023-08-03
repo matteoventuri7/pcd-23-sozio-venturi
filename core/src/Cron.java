@@ -7,17 +7,17 @@ public class Cron {
         running = false;
     }
 
-    public synchronized void start(){
+    public void start(){
         running = true;
         startTime = System.currentTimeMillis();
     }
 
-    public synchronized void stop(){
+    public void stop(){
         startTime = getTime();
         running = false;
     }
 
-    public synchronized long getTime(){
+    public long getTime(){
         if (running){
             return 	System.currentTimeMillis() - startTime;
         } else {
