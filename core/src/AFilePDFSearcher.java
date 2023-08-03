@@ -198,7 +198,8 @@ public abstract class AFilePDFSearcher
         try(PDDocument document = PDDocument.load(file.toFile())) {
             PDFTextStripper stripper = new PDFTextStripper();
             String text = stripper.getText(document);
-            return text.toLowerCase().contains(" " + _word.toLowerCase() + " ");
+            boolean contains = text.toLowerCase().contains(_word.toLowerCase());
+            return contains;
         }
     }
 

@@ -39,7 +39,7 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
                 if (wordFoundInPDF) {
                     _searchResult.addResult(file);
                     if (_guiRegistrable != null) {
-                        _guiRegistrable.onNewResultFile(new ResultEventArgs(file, _searchResult.getTotalFiles()));
+                        _guiRegistrable.onNewResultFile(new ResultEventArgs(file, _searchResult.getTotalFiles(), _searchResult.getFiles().size()));
                     }
                 }
 

@@ -1,6 +1,5 @@
 import java.nio.file.Path;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ForkJoinPool;
 
 public class VirtualThreadFileSearcher extends MultiThreadFileSearcher {
 
