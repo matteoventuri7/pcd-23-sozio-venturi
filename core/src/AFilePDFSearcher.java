@@ -136,10 +136,7 @@ public abstract class AFilePDFSearcher
                 } else {
                     System.out.println("Handling file " + file.toString());
                     if (isNew) {
-                        _searchResult.IncreaseTotalFiles();
-                        if (_guiRegistrable != null) {
-                            _guiRegistrable.onNewFoundFile(_searchResult.getTotalFiles());
-                        }
+                        CountNewFileAndNotify();
                     }
                     onFoundPDFFile(file, attrs);
                 }
@@ -203,11 +200,11 @@ public abstract class AFilePDFSearcher
         _guiRegistrable = registrable;
     }
 
-    protected void notifyFinish() {
+    protected synchronized void notifyFinish() {
         _searchResult.setComputationFinished();
         _searchResult.setElapsedTime(getElapsedTime());
         if (_guiRegistrable != null)
-            _guiRegistrable.onFinish(getResult());
+            _guiRegistrable.onFinish(_searchResult);
     }
 
     /**
@@ -230,15 +227,26 @@ public abstract class AFilePDFSearcher
             }
 
             if (wordFoundInPDF) {
-                _searchResult.addResult(file);
-                if (_guiRegistrable != null) {
-                    _guiRegistrable.onNewResultFile(new ResultEventArgs(file, _searchResult.getTotalFiles(), _searchResult.getFiles().size()));
-                }
+                AddResultAndNotify(file);
             }
 
             return true;
         }
 
         return false;
+    }
+
+    private synchronized void AddResultAndNotify(Path file){
+        _searchResult.addResult(file);
+        if (_guiRegistrable != null) {
+            _guiRegistrable.onNewResultFile(new ResultEventArgs(file, _searchResult.getTotalFiles(), _searchResult.getFiles().size()));
+        }
+    }
+
+    private synchronized void CountNewFileAndNotify() {
+        _searchResult.IncreaseTotalFiles();
+        if (_guiRegistrable != null) {
+            _guiRegistrable.onNewFoundFile(_searchResult.getTotalFiles());
+        }
     }
 }

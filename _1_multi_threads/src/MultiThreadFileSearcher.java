@@ -8,7 +8,6 @@ import java.util.concurrent.TimeUnit;
 public class MultiThreadFileSearcher extends AFilePDFSearcher {
     protected ExecutorService _threadPool;
     private long nComputedFiles = 0;
-    private final Object workerLock = new Object();
 
     public MultiThreadFileSearcher(Path start, String word) {
         super(start, word);
@@ -52,14 +51,16 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
             boolean done = searchWordInsideFile(file, attrs);
 
             if (done) {
-                synchronized (workerLock) {
-                    nComputedFiles++;
-                    if (nComputedFiles == getResult().getTotalFiles()) {
-                        notifyFinish();
-                    }
-                }
+                NotifyIfFinished();
             }
         });
+    }
+
+    private synchronized void NotifyIfFinished(){
+        nComputedFiles++;
+        if (nComputedFiles == getResult().getTotalFiles()) {
+            notifyFinish();
+        }
     }
 
     @Override

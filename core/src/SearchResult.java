@@ -8,7 +8,7 @@ public class SearchResult {
     private boolean searchIsFinished;
     private boolean computationIsFinished;
 
-    public synchronized void addResult(Path file) {
+    protected void addResult(Path file) {
         files.add(file);
     }
 
@@ -16,11 +16,11 @@ public class SearchResult {
         return new ArrayList<>(files);
     }
 
-    public synchronized void IncreaseTotalFiles() {
+    protected void IncreaseTotalFiles() {
         totalFiles++;
     }
 
-    void IncreaseTotalFiles(long count) {
+    protected void IncreaseTotalFiles(long count) {
         totalFiles += count;
     }
 
@@ -36,15 +36,15 @@ public class SearchResult {
         return elapsedTime;
     }
 
-    void setElapsedTime(long et){
+    protected void setElapsedTime(long et){
         elapsedTime = et;
     }
 
-    public void setComputationFinished() {
+    protected void setComputationFinished() {
         computationIsFinished = true;
     }
 
-    public void setSearchIsFinished() {
+    protected void setSearchIsFinished() {
         searchIsFinished = true;
     }
 }
