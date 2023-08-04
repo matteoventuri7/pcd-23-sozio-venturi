@@ -55,7 +55,7 @@ public class Main {
 
             @Override
             public void onFinish(SearchResult result) {
-                System.out.println("Total files found: " + result.getFiles().size());
+                System.out.println("Total files found: " + result.getTotalFoundFiles());
                 System.out.println("Total files processed: " + result.getTotalFiles());
                 System.out.println("Computing Time: " + result.getElapsedTime() + " ms");
 

@@ -239,7 +239,7 @@ public abstract class AFilePDFSearcher
     private synchronized void AddResultAndNotify(Path file){
         _searchResult.addResult(file);
         if (_guiRegistrable != null) {
-            _guiRegistrable.onNewResultFile(new ResultEventArgs(file, _searchResult.getTotalFiles(), _searchResult.getFiles().size()));
+            _guiRegistrable.onNewResultFile(new ResultEventArgs(file, _searchResult.getTotalFiles(), _searchResult.getTotalFoundFiles()));
         }
     }
 

@@ -1,20 +1,17 @@
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class SearchResult {
-    private final ArrayList<Path> files = new ArrayList<>();
+    private final ConcurrentLinkedQueue<Path> files = new ConcurrentLinkedQueue<>();
     private long totalFiles;
     private long elapsedTime;
     private boolean searchIsFinished;
     private boolean computationIsFinished;
 
-    protected void addResult(Path file) {
-        files.add(file);
-    }
+    protected void addResult(Path file) { files.add(file); }
 
-    public ArrayList<Path> getFiles(){
-        return new ArrayList<>(files);
-    }
+    public Path[] getFiles() { return files.toArray(new Path[0]); }
 
     protected void IncreaseTotalFiles() {
         totalFiles++;
@@ -28,7 +25,9 @@ public class SearchResult {
         return totalFiles;
     }
 
-    public boolean IsFinished(){
+    public long getTotalFoundFiles() { return files.size(); }
+
+    public boolean IsFinished() {
         return searchIsFinished && computationIsFinished;
     }
 
@@ -36,8 +35,7 @@ public class SearchResult {
         return elapsedTime;
     }
 
-    protected void setElapsedTime(long et){
-        elapsedTime = et;
+    protected void setElapsedTime(long et) { elapsedTime = et;
     }
 
     protected void setComputationFinished() {
