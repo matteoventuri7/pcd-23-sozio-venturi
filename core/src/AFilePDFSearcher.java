@@ -22,13 +22,23 @@ public abstract class AFilePDFSearcher
     private SearchResult _searchResult;
     private String _word;
     private boolean _stop = false, _pause = false;
+    /**
+     * Used to store found files while program is suspended
+     */
     private ConcurrentHashMap<Path, BasicFileAttributes> _bufferFiles = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<Path, Boolean> _threadStatus = new ConcurrentHashMap<>();
+    /**
+     * Used to store directories while program is suspended
+     */
     private ConcurrentLinkedQueue<Path> _bufferDirectories = new ConcurrentLinkedQueue<>();
-    private long _bufferTotalFiles = 0;
     private final ExecutorService _threadPool;
+    /**
+     * Mark the computation time
+     */
     private Cron _cron;
-    private IGuiRegistrable _guiRegistrable;
+    /**
+     * It's the observer interested on receive some events.
+     */
+    private IEventsRegistrable _guiRegistrable;
 
     /**
      * @param start The initial path from start
@@ -59,7 +69,6 @@ public abstract class AFilePDFSearcher
         if (_pause) {
             _pause = false;
             // resuming files
-            _searchResult.IncreaseTotalFiles(_bufferTotalFiles);
             for (Path pathFile : _bufferFiles.keySet()) {
                 visitFileImpl(pathFile, _bufferFiles.get(pathFile), false);
                 _bufferFiles.remove(pathFile);
@@ -83,7 +92,6 @@ public abstract class AFilePDFSearcher
 
     private void startFileWalker(Path startDir) {
         _threadPool.execute(() -> {
-            _threadStatus.put(startDir, false);
             try {
                 Files.walkFileTree(startDir, new SimpleFileVisitor<Path>() {
                     @Override
@@ -105,13 +113,6 @@ public abstract class AFilePDFSearcher
 
                     @Override
                     public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                        if (dir.equals(startDir)) {
-                            _threadStatus.put(startDir, true);
-                            if (_threadStatus.values().stream().allMatch(x -> x)) {
-                                getResult().setSearchIsFinished();
-                                System.out.println("Search finish");
-                            }
-                        }
                         if (_stop) return FileVisitResult.TERMINATE;
                         return super.postVisitDirectory(dir, exc);
                     }
@@ -130,7 +131,6 @@ public abstract class AFilePDFSearcher
                     attrs.isRegularFile() &&
                     getExtensionFile(file.getFileName().toString()).equals("pdf")) {
                 if (_pause) {
-                    _bufferTotalFiles++;
                     _bufferFiles.put(file, attrs);
                     System.out.println("Buffered file " + file.toString());
                 } else {
@@ -163,7 +163,7 @@ public abstract class AFilePDFSearcher
         _pause = true;
     }
 
-    public void resume() throws IOException {
+    public void resume() {
         if (_pause) {
             start();
         }
@@ -182,6 +182,12 @@ public abstract class AFilePDFSearcher
         _threadPool.close();
     }
 
+    /**
+     * Contains the common logic to find out if the file contains the word
+     * @param file
+     * @return
+     * @throws IOException
+     */
     protected boolean searchWordInPDF(Path file) throws IOException {
         // Implement your code to search the word in the PDF here
         // You can use libraries like Apache PDFBox to extract text from the PDF and search the word.
@@ -196,12 +202,11 @@ public abstract class AFilePDFSearcher
         }
     }
 
-    public void register(IGuiRegistrable registrable) {
+    public void register(IEventsRegistrable registrable) {
         _guiRegistrable = registrable;
     }
 
     protected synchronized void notifyFinish() {
-        _searchResult.setComputationFinished();
         _searchResult.setElapsedTime(getElapsedTime());
         if (_guiRegistrable != null)
             _guiRegistrable.onFinish(_searchResult);
@@ -236,6 +241,10 @@ public abstract class AFilePDFSearcher
         return false;
     }
 
+    /**
+     * Add the file that contains the word in the results and notify the observer
+     * @param file
+     */
     private synchronized void AddResultAndNotify(Path file){
         _searchResult.addResult(file);
         if (_guiRegistrable != null) {
@@ -243,6 +252,9 @@ public abstract class AFilePDFSearcher
         }
     }
 
+    /**
+     * Increase the found file counter and notify the observer
+     */
     private synchronized void CountNewFileAndNotify() {
         _searchResult.IncreaseTotalFiles();
         if (_guiRegistrable != null) {

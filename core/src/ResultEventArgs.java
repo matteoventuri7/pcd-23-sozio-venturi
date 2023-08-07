@@ -11,14 +11,26 @@ public class ResultEventArgs {
         this.totalFiles=totalFiles;
     }
 
+    /**
+     * Get the file containing the word
+     * @return
+     */
     public Path getFile() {
         return file;
     }
 
+    /**
+     * Get the count files containing the word
+     * @return
+     */
     public long getTotalResultsFiles() {
         return totalResultsFiles;
     }
 
+    /**
+     * Get the count files were found
+     * @return
+     */
     public long getTotalFiles() {
         return totalFiles;
     }

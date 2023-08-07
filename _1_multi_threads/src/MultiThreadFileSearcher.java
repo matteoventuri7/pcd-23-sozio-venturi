@@ -16,6 +16,7 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
     @Override
     public void start() {
         if (_threadPool == null || _threadPool.isShutdown()) {
+            // this is the case when we start over again the program
             nComputedFiles = 0;
             // thread pool was stopped or terminated job
             if (_threadPool != null && !_threadPool.isTerminated()) {
@@ -29,8 +30,10 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
                     throw new RuntimeException(e);
                 }
             }
-            // all thread finished theirs job, we can re-instantiate thread pool
+            // all threads finished own job, we can re-instantiate thread pool
             instantiateThreads();
+        } else {
+            // this is the case when we resume the program
         }
         super.start();
     }
@@ -42,21 +45,14 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
     @Override
     protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws RejectedExecutionException {
         _threadPool.execute(() -> {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-
             boolean done = searchWordInsideFile(file, attrs);
-
             if (done) {
                 NotifyIfFinished();
             }
         });
     }
 
-    private synchronized void NotifyIfFinished(){
+    private synchronized void NotifyIfFinished() {
         nComputedFiles++;
         if (nComputedFiles == getResult().getTotalFiles()) {
             notifyFinish();

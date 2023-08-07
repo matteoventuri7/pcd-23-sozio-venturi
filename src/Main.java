@@ -42,7 +42,7 @@ public class Main {
                 return;
         }
 
-        s.register(new IGuiRegistrable() {
+        s.register(new IEventsRegistrable() {
             @Override
             public void onNewResultFile(ResultEventArgs ev) {
                 System.out.println("Found: " + ev.getFile().toString());

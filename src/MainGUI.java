@@ -4,9 +4,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.stream.Collectors;
 
 public class MainGUI {
     private static IWordSearcher s;
@@ -176,11 +173,7 @@ public class MainGUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (s != null) {
-                    try {
-                        s.resume();
-                    } catch (IOException ex) {
-                        throw new RuntimeException(ex);
-                    }
+                    s.resume();
 
                     System.out.println("RESUMED");
                     stopButton.setEnabled(true);
@@ -209,7 +202,7 @@ public class MainGUI {
         }
 
         if(s != null){
-            s.register(new IGuiRegistrable() {
+            s.register(new IEventsRegistrable() {
                 @Override
                 public void onNewResultFile(ResultEventArgs ev) {
                     SwingUtilities.invokeLater(() -> {
