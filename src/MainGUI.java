@@ -26,6 +26,7 @@ public class MainGUI {
                 if (s != null) {
                     try {
                         s.stop();
+                        s.close();
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -117,10 +118,6 @@ public class MainGUI {
                     totalFilesLabel.setText("Total files: 0");
                     foundPdfFilesLabel.setText("Found PDF files: 0");
                 } catch (Exception ex) {
-                    try {
-                        s.close();
-                    } catch (Exception exc) {
-                    }
                     outputArea.append("Error: " + ex.getMessage() + "\n");
                     // Still make sure to signal the end of the search in case of error
                     searchFinished(s.getResult());
@@ -133,20 +130,15 @@ public class MainGUI {
             public void actionPerformed(ActionEvent e) {
                 if (s != null) {
                     try {
-                        s.stop();
                         System.out.println("STOPPED");
-
-                        // Clear the output area
-                        outputArea.setText("");
-
-                        // Reset labels
-                        totalFilesLabel.setText("Total files: 0");
-                        foundPdfFilesLabel.setText("Found PDF files: 0");
 
                         stopButton.setEnabled(false);
                         resumeButton.setEnabled(false);
                         suspendButton.setEnabled(false);
                         startButton.setEnabled(true); // Enable the "Start" button
+
+                        SwingUtilities.invokeLater(s::stop);
+
                     } catch (Exception ex) {
                         throw new RuntimeException(ex);
                     }
@@ -154,17 +146,16 @@ public class MainGUI {
             }
         });
 
-
         suspendButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (s != null) {
-                    s.pause();
-
                     System.out.println("SUSPENDED");
                     stopButton.setEnabled(false);
                     suspendButton.setEnabled(false);
                     resumeButton.setEnabled(true);
+
+                    SwingUtilities.invokeLater(s::pause);
                 }
             }
         });
@@ -173,12 +164,12 @@ public class MainGUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (s != null) {
-                    s.resume();
-
                     System.out.println("RESUMED");
                     stopButton.setEnabled(true);
                     suspendButton.setEnabled(true);
                     resumeButton.setEnabled(false);
+
+                    SwingUtilities.invokeLater(s::resume);
                 }
             }
         });

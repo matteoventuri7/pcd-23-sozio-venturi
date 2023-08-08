@@ -9,6 +9,6 @@ public class VirtualThreadFileSearcher extends MultiThreadFileSearcher {
 
     @Override
     protected void instantiateThreads() {
-        _threadPool = Executors.newVirtualThreadPerTaskExecutor();
+        threadPool = Executors.newVirtualThreadPerTaskExecutor();
     }
 }
