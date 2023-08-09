@@ -2,20 +2,24 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.nio.file.Path;
+import java.util.Objects;
 
 public class MainGUI {
     private static IWordSearcher s;
     private static JTextArea outputArea;
     private static JLabel totalFilesLabel;
     private static JLabel foundPdfFilesLabel;
-    private static JLabel computingTimeLabel; // New label for computing time
+    private static JLabel messageLabel; // New label for computing time
     private static JButton stopButton;
     private static JButton startButton;
     private static JButton suspendButton;
     private static JButton resumeButton;
     private static JComboBox<String> emptySelect;
+    private static JFileChooser folderChooser;
+    private static JTextField folderField, keywordField;
 
     public static void main(String[] args) {
         JFrame frame = new JFrame("File Search GUI");
@@ -24,12 +28,16 @@ public class MainGUI {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
                 if (s != null) {
-                    try {
-                        s.stop();
-                        s.close();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
+                    messageLabel.setText("Exiting...");
+                    SwingUtilities.invokeLater(()->{
+                        try {
+                            s.stop();
+                            s.close();
+                        } catch (Exception e) {
+                            // silent
+                            System.err.println(e);
+                        }
+                    });
                 }
             }
         });
@@ -39,8 +47,13 @@ public class MainGUI {
 
         JPanel inputPanel = new JPanel();
         inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
-        JTextField folderField = new JTextField("/Users/diegosozio/Documents/PCD/test", 20);
-        JTextField keywordField = new JTextField("ciao", 20);
+
+        folderField = new JTextField("Click to select directory...");
+        folderChooser = new JFileChooser();
+        folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        folderChooser.setAcceptAllFileFilterUsed(false);
+
+        keywordField = new JTextField();
         startButton = new JButton("Start");
         stopButton = new JButton("Stop");
         suspendButton = new JButton("Suspend");
@@ -58,8 +71,10 @@ public class MainGUI {
 
         inputPanel.add(new JLabel("Folder:"));
         inputPanel.add(folderField);
+
         inputPanel.add(new JLabel("Keyword:"));
         inputPanel.add(keywordField);
+
         inputPanel.add(startButton);
         inputPanel.add(stopButton);
         inputPanel.add(suspendButton);
@@ -84,8 +99,38 @@ public class MainGUI {
         emptySelect.addItem("Approach: Task Java");
 
         // Create the computing time label
-        computingTimeLabel = new JLabel("");
-        inputPanel.add(computingTimeLabel);
+        messageLabel = new JLabel();
+        inputPanel.add(messageLabel);
+
+        folderField.addMouseListener(new MouseListener() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                var result = folderChooser.showOpenDialog(folderField);
+                if(result == JFileChooser.APPROVE_OPTION){
+                    folderField.setText(folderChooser.getSelectedFile().getAbsolutePath());
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+
+            }
+        });
 
         emptySelect.addActionListener(new ActionListener() {
             @Override
@@ -97,7 +142,9 @@ public class MainGUI {
         startButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                computingTimeLabel.setText("");
+                if(!CanStart()) return;
+
+                messageLabel.setText("");
                 // Store the start time when the "Start" button is pressed
                 String folderPath = folderField.getText();
                 String keyword = keywordField.getText().trim(); // Save the searched keyword
@@ -155,7 +202,12 @@ public class MainGUI {
                     suspendButton.setEnabled(false);
                     resumeButton.setEnabled(true);
 
-                    SwingUtilities.invokeLater(s::pause);
+                    messageLabel.setText("Suspending...");
+
+                    SwingUtilities.invokeLater(()->{
+                        s.pause();
+                        messageLabel.setText("Suspended!");
+                    });
                 }
             }
         });
@@ -169,12 +221,22 @@ public class MainGUI {
                     suspendButton.setEnabled(true);
                     resumeButton.setEnabled(false);
 
-                    SwingUtilities.invokeLater(s::resume);
+                    messageLabel.setText("Resuming...");
+
+                    SwingUtilities.invokeLater(()->{
+                        s.resume();
+                        messageLabel.setText("Resumed!");
+                    });
                 }
             }
         });
 
         frame.setVisible(true);
+    }
+
+    private static boolean CanStart(){
+        return !Objects.equals(keywordField.getText(), "") &&
+                !Objects.equals(folderField.getText(), "");
     }
 
     private static void instanziateSearcher(String folderPath, String selectedApproach, String keyword) {
@@ -192,7 +254,7 @@ public class MainGUI {
                 break;
         }
 
-        if(s != null){
+        if (s != null) {
             s.register(new IEventsRegistrable() {
                 @Override
                 public void onNewResultFile(ResultEventArgs ev) {
@@ -226,6 +288,6 @@ public class MainGUI {
         resumeButton.setEnabled(false);
         suspendButton.setEnabled(false);
 
-        computingTimeLabel.setText("Computing Time: " + result.getElapsedTime() + " ms");
+        messageLabel.setText("Computing Time: " + result.getElapsedTime() + " ms");
     }
 }
