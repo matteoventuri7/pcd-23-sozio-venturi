@@ -26,7 +26,7 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
     }
 
     protected void instantiateThreads() {
-        threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
     }
 
     @Override
@@ -43,7 +43,7 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
         });
     }
 
-    private synchronized void notifyIfFinished() {
+    protected synchronized void notifyIfFinished() {
         nComputedFiles++;
 
         if (isResearchFinished() && isFinished()) {
