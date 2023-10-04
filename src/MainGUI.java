@@ -248,7 +248,7 @@ public class MainGUI {
                 s = new VirtualThreadFileSearcher(Path.of(folderPath), keyword);
                 break;
             case "Approach: Task Java": // Create the Task Java approach instance
-                s = null;
+                s = new TaskFileSearcher(Path.of(folderPath), keyword);
                 break;
             default:
                 break;
