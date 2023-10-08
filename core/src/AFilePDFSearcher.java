@@ -81,7 +81,7 @@ public abstract class AFilePDFSearcher
                                     if (!attrs.isSymbolicLink() &&
                                             attrs.isRegularFile() &&
                                             getExtensionFile(file.getFileName().toString()).equals("pdf")) {
-                                        Thread.sleep(2000);
+                                        //Thread.sleep(2000);
                                         System.out.println("Handling file " + file.toString());
                                         CountNewFileAndNotify();
                                         onFoundPDFFile(file, attrs);
@@ -101,7 +101,7 @@ public abstract class AFilePDFSearcher
                     @Override
                     public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
                         if (stop || dir.equals(startDir)) {
-                            researchIsfinished = true;
+                            onSearchIsFinished();
                             return FileVisitResult.TERMINATE;
                         }
                         return super.postVisitDirectory(dir, exc);
@@ -112,6 +112,10 @@ public abstract class AFilePDFSearcher
                 System.out.println(e.toString());
             }
         });
+    }
+
+    protected void onSearchIsFinished() {
+        researchIsfinished = true;
     }
 
     /**
@@ -180,9 +184,9 @@ public abstract class AFilePDFSearcher
             PDFTextStripper stripper = new PDFTextStripper();
             String text = stripper.getText(document);
             boolean contains = text.toLowerCase().contains(word.toLowerCase());
-            Thread.sleep(200);
+            //Thread.sleep(200);
             return contains;
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
