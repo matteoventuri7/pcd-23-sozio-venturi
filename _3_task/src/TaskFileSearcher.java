@@ -15,6 +15,8 @@ public class TaskFileSearcher extends AFilePDFSearcher {
 
     @Override
     public void start() {
+        futures.clear();
+
         if (threadPool == null) {
             // fresh start
             threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
@@ -26,6 +28,8 @@ public class TaskFileSearcher extends AFilePDFSearcher {
     protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws RejectedExecutionException {
         Future<Optional<Boolean>> future = threadPool.submit(()->{
             try {
+                CheckStartSearch();
+
                 var done = searchWordInsideFile(file, attrs);
                 if(done.isPresent() && done.get()){
                     sem.acquire();

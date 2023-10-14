@@ -1,41 +1,64 @@
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.concurrent.TimeUnit;
 
 public class EventsFileSearcher extends AFilePDFSearcher {
     protected final static String topicName = "pdf-search-result";
-    private final Vertx vertx;
+    private Vertx vertx;
     private int nComputedFiles=0;
 
     public EventsFileSearcher(Path start, String word) {
         super(start, word);
-        vertx = Vertx.vertx();
-        vertx.deployVerticle(new AbstractVerticle(){
-            public void start() {
-                EventBus eb = this.getVertx().eventBus();
-                eb.consumer(topicName, message -> {
-                    Path positiveFile = (Path) message.body();
-                    AddResultAndNotify(positiveFile);
-                    notifyIfFinished();
-                });
-            }
-        });
+    }
+
+    @Override
+    public void start() {
+        nComputedFiles=0;
+
+        if(vertx == null){
+            vertx = Vertx.vertx();
+            vertx.deployVerticle(new AbstractVerticle(){
+                public void start() {
+                    EventBus eb = this.getVertx().eventBus();
+                    eb.<String>consumer(topicName, message -> {
+                        String positiveFile = message.body();
+                        AddResultAndNotify(Path.of(positiveFile));
+                        notifyIfFinished();
+                    });
+                }
+            });
+        }
+
+        super.start();
     }
 
     @Override
     protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) {
-        vertx.deployVerticle(new SearcherAgent(file, word));
+        try {
+            CheckStartSearch();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        vertx.deployVerticle(new AbstractVerticle(){
+            public void start() throws InterruptedException, IOException {
+
+                nComputedFiles++;
+                var isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
+                if(isPositive) {
+                    EventBus eb = this.getVertx().eventBus();
+                    eb.publish(EventsFileSearcher.topicName, file.toString());
+                }
+            }
+        });
     }
 
     protected void notifyIfFinished() {
-        nComputedFiles++;
-
         if (isResearchFinished() && isFinished()) {
             notifyFinish();
         }
@@ -48,24 +71,8 @@ public class EventsFileSearcher extends AFilePDFSearcher {
     @Override
     public void close() throws Exception {
         super.close();
-        vertx.close();
-    }
-}
-
-class SearcherAgent extends AbstractVerticle {
-    private final Path file;
-    private final String word;
-
-    public SearcherAgent(Path file, String word) {
-        this.file=file;
-        this.word=word;
-    }
-
-    public void start() throws IOException {
-        var isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
-        if(isPositive) {
-            EventBus eb = this.getVertx().eventBus();
-            eb.publish(EventsFileSearcher.topicName, file);
+        if(vertx != null) {
+            vertx.close();
         }
     }
 }

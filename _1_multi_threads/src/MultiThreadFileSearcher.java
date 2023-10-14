@@ -31,6 +31,8 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
     protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws RejectedExecutionException {
         threadPool.execute(() -> {
             try {
+                CheckStartSearch();
+
                 var done = searchWordInsideFile(file, attrs);
                 if (done.isPresent()) {
                     sem.acquire();

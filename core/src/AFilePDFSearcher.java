@@ -19,7 +19,8 @@ public abstract class AFilePDFSearcher
     private SearchResult searchResult;
     protected final String word;
     private boolean stop = false, pause = false, researchIsfinished = false;
-    private Semaphore fileWalkerSemaphore = new Semaphore(1, true);
+    private final Semaphore fileWalkerSemaphore = new Semaphore(1, true);
+    private final Semaphore searcherSemaphore = new Semaphore(1, true);
     private final ExecutorService threadPool;
     /**
      * Mark the computation time
@@ -47,6 +48,15 @@ public abstract class AFilePDFSearcher
 
     protected boolean isResearchFinished() {
         return researchIsfinished;
+    }
+
+    /**
+     * The caller is blocked if program was suspended, otherwise the caller continue.
+     * @throws InterruptedException
+     */
+    protected void CheckStartSearch() throws InterruptedException {
+        searcherSemaphore.acquire();
+        searcherSemaphore.release();
     }
 
     /**
@@ -81,7 +91,7 @@ public abstract class AFilePDFSearcher
                                     if (!attrs.isSymbolicLink() &&
                                             attrs.isRegularFile() &&
                                             getExtensionFile(file.getFileName().toString()).equals("pdf")) {
-                                        //Thread.sleep(2000);
+                                        Thread.sleep(1000);
                                         System.out.println("Handling file " + file.toString());
                                         CountNewFileAndNotify();
                                         onFoundPDFFile(file, attrs);
@@ -136,6 +146,7 @@ public abstract class AFilePDFSearcher
     public void pause() {
         try {
             fileWalkerSemaphore.acquire();
+            searcherSemaphore.acquire();
             pause = true;
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -143,8 +154,9 @@ public abstract class AFilePDFSearcher
     }
 
     public void resume() {
-        fileWalkerSemaphore.release();
         pause = false;
+        searcherSemaphore.release();
+        fileWalkerSemaphore.release();
     }
 
     public SearchResult getResult() {
@@ -179,7 +191,7 @@ public abstract class AFilePDFSearcher
             PDFTextStripper stripper = new PDFTextStripper();
             String text = stripper.getText(document);
             boolean contains = text.toLowerCase().contains(word.toLowerCase());
-            //Thread.sleep(200);
+            Thread.sleep(1000);
             return contains;
         } catch (Exception e) {
             throw new RuntimeException(e);
