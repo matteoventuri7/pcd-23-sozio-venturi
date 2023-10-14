@@ -1,14 +1,11 @@
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class MultiThreadFileSearcher extends AFilePDFSearcher {
     protected ExecutorService threadPool;
     private long nComputedFiles;
-    private final Object cs = new Object();
+    private Semaphore sem = new Semaphore(1, true);
 
     public MultiThreadFileSearcher(Path start, String word) {
         super(start, word);
@@ -36,12 +33,12 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
             try {
                 var done = searchWordInsideFile(file, attrs);
                 if (done.isPresent()) {
-                    synchronized (cs) {
-                        if(done.get()) {
-                            AddResultAndNotify(file);
-                        }
-                        notifyIfFinished();
+                    sem.acquire();
+                    if(done.get()) {
+                        AddResultAndNotify(file);
                     }
+                    notifyIfFinished();
+                    sem.release();
                 }
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);

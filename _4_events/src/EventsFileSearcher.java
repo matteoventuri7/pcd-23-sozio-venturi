@@ -9,6 +9,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.concurrent.TimeUnit;
 
 public class EventsFileSearcher extends AFilePDFSearcher {
+    protected final static String topicName = "pdf-search-result";
     private final Vertx vertx;
     private int nComputedFiles=0;
 
@@ -18,7 +19,7 @@ public class EventsFileSearcher extends AFilePDFSearcher {
         vertx.deployVerticle(new AbstractVerticle(){
             public void start() {
                 EventBus eb = this.getVertx().eventBus();
-                eb.consumer("pdf-search-result", message -> {
+                eb.consumer(topicName, message -> {
                     Path positiveFile = (Path) message.body();
                     AddResultAndNotify(positiveFile);
                     notifyIfFinished();
@@ -64,7 +65,7 @@ class SearcherAgent extends AbstractVerticle {
         var isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
         if(isPositive) {
             EventBus eb = this.getVertx().eventBus();
-            eb.publish("pdf-search-result", file);
+            eb.publish(EventsFileSearcher.topicName, file);
         }
     }
 }

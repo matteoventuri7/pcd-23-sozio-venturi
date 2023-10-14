@@ -204,7 +204,7 @@ public abstract class AFilePDFSearcher
      * @return true if the file is positive, false otherwise and null if search is suspended
      */
     protected Optional<Boolean> searchWordInsideFile(Path file, BasicFileAttributes attrs) throws InterruptedException {
-        if(stop || pause){
+        if(stop){
             return Optional.empty();
         }
 

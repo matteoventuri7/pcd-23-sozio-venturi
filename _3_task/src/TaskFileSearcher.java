@@ -7,7 +7,7 @@ import java.util.concurrent.*;
 public class TaskFileSearcher extends AFilePDFSearcher {
     private ExecutorService threadPool;
     private final ArrayList<Future<Optional<Boolean>>> futures = new ArrayList<>();
-    private final Object cs = new Object();
+    private Semaphore sem = new Semaphore(1, true);
 
     public TaskFileSearcher(Path start, String word) {
         super(start, word);
@@ -28,9 +28,9 @@ public class TaskFileSearcher extends AFilePDFSearcher {
             try {
                 var done = searchWordInsideFile(file, attrs);
                 if(done.isPresent() && done.get()){
-                    synchronized (cs) {
-                        AddResultAndNotify(file);
-                    }
+                    sem.acquire();
+                    AddResultAndNotify(file);
+                    sem.release();
                 }
                 return done;
             } catch (InterruptedException e) {
