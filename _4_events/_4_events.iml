@@ -8,5 +8,6 @@
     <orderEntry type="jdk" jdkName="openjdk-21" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="core" />
+    <orderEntry type="library" name="io.vertx.core" level="project" />
   </component>
 </module>

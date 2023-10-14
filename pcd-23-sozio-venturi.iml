@@ -5,11 +5,12 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
     </content>
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="openjdk-21" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="_1_multi_threads" />
     <orderEntry type="module" module-name="core" />
     <orderEntry type="module" module-name="_2_virtual_threads" />
     <orderEntry type="module" module-name="_3_task" />
+    <orderEntry type="module" module-name="_4_events" />
   </component>
 </module>

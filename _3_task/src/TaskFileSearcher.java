@@ -1,11 +1,13 @@
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.concurrent.*;
 
 public class TaskFileSearcher extends AFilePDFSearcher {
     private ExecutorService threadPool;
-    private ArrayList<Future<Boolean>> futures = new ArrayList<>();
+    private final ArrayList<Future<Optional<Boolean>>> futures = new ArrayList<>();
+    private final Object cs = new Object();
 
     public TaskFileSearcher(Path start, String word) {
         super(start, word);
@@ -22,12 +24,17 @@ public class TaskFileSearcher extends AFilePDFSearcher {
     }
     @Override
     protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws RejectedExecutionException {
-        var future = threadPool.submit(()->{
+        Future<Optional<Boolean>> future = threadPool.submit(()->{
             try {
                 var done = searchWordInsideFile(file, attrs);
+                if(done.isPresent() && done.get()){
+                    synchronized (cs) {
+                        AddResultAndNotify(file);
+                    }
+                }
                 return done;
             } catch (InterruptedException e) {
-                return false;
+                return Optional.empty();
             }
         });
 
@@ -39,9 +46,10 @@ public class TaskFileSearcher extends AFilePDFSearcher {
         super.onSearchIsFinished();
 
         long elaboratedFilesCounter = 0;
-        for (Future<Boolean> res: futures) {
+        for (Future<Optional<Boolean>> res: futures) {
             try {
-                if(res.get()){
+                var optional = res.get();
+                if(optional.isPresent()){
                     elaboratedFilesCounter++;
                 }
             } catch (Exception ex){

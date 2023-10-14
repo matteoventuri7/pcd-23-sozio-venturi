@@ -21,21 +21,24 @@ public class Main {
         System.out.println("Enter the keyword:");
         keyword = scanner.nextLine();
 
-        System.out.println("Select the approach (1: Multithreaded, 2: Virtual Thread, 3: Task Java):");
+        System.out.println("Select the approach (1: Multithreaded, 2: Virtual Thread, 3: Task Java, 4: Events):");
         int approachChoice = scanner.nextInt();
         scanner.nextLine(); // Consume the remaining newline character
 
         final IWordSearcher s;
+        Path file = Path.of(folderPath);
         switch (approachChoice) {
             case 1:
-                s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
+                s = new MultiThreadFileSearcher(file, keyword);
                 break;
             case 2:
-                s = new VirtualThreadFileSearcher(Path.of(folderPath), keyword);
+                s = new VirtualThreadFileSearcher(file, keyword);
                 break;
             case 3:
-                // Implement the Task Java approach here if needed
-                s = null;
+                s = new TaskFileSearcher(file, keyword);
+                break;
+            case 4:
+                s = new EventsFileSearcher(file, keyword);
                 break;
             default:
                 System.out.println("Invalid approach choice. Exiting...");

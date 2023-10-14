@@ -96,7 +96,8 @@ public class MainGUI {
         // Add elements to the JComboBox
         emptySelect.addItem("Approach: Multithreaded");
         emptySelect.addItem("Approach: Virtual Thread");
-        emptySelect.addItem("Approach: Task Java");
+        emptySelect.addItem("Approach: Task");
+        emptySelect.addItem("Approach: Events");
 
         // Create the computing time label
         messageLabel = new JLabel();
@@ -240,15 +241,19 @@ public class MainGUI {
     }
 
     private static void instanziateSearcher(String folderPath, String selectedApproach, String keyword) {
+        Path file = Path.of(folderPath);
         switch (selectedApproach) {
             case "Approach: Multithreaded":
-                s = new MultiThreadFileSearcher(Path.of(folderPath), keyword);
+                s = new MultiThreadFileSearcher(file, keyword);
                 break;
             case "Approach: Virtual Thread":
-                s = new VirtualThreadFileSearcher(Path.of(folderPath), keyword);
+                s = new VirtualThreadFileSearcher(file, keyword);
                 break;
-            case "Approach: Task Java": // Create the Task Java approach instance
-                s = new TaskFileSearcher(Path.of(folderPath), keyword);
+            case "Approach: Task":
+                s = new TaskFileSearcher(file, keyword);
+                break;
+            case "Approach: Events":
+                s = new EventsFileSearcher(file, keyword);
                 break;
             default:
                 break;

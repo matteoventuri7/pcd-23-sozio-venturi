@@ -17,7 +17,7 @@ public abstract class AFilePDFSearcher
         implements IWordSearcher {
     private final Path start;
     private SearchResult searchResult;
-    private String word;
+    protected final String word;
     private boolean stop = false, pause = false, researchIsfinished = false;
     private Semaphore fileWalkerSemaphore = new Semaphore(1, true);
     private final ExecutorService threadPool;
@@ -174,12 +174,7 @@ public abstract class AFilePDFSearcher
      * @return
      * @throws IOException
      */
-    protected boolean searchWordInPDF(Path file) throws IOException {
-        // Implement your code to search the word in the PDF here
-        // You can use libraries like Apache PDFBox to extract text from the PDF and search the word.
-        // Return true if word is found, false otherwise.
-        // Sample code:
-
+    protected static boolean searchWordInPDF(Path file, String word) throws IOException {
         try (PDDocument document = PDDocument.load(file.toFile())) {
             PDFTextStripper stripper = new PDFTextStripper();
             String text = stripper.getText(document);
@@ -206,26 +201,23 @@ public abstract class AFilePDFSearcher
      *
      * @param file
      * @param attrs
-     * @return true if the file is worked, false otherwise (i.e. suspended)
+     * @return true if the file is positive, false otherwise and null if search is suspended
      */
-    protected boolean searchWordInsideFile(Path file, BasicFileAttributes attrs) throws InterruptedException {
-        if (!stop) {
-            // Search the word in the PDF
-            boolean wordFoundInPDF = false;
-            try {
-                wordFoundInPDF = searchWordInPDF(file);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            if (wordFoundInPDF) {
-                AddResultAndNotify(file);
-            }
-
-            return true;
+    protected Optional<Boolean> searchWordInsideFile(Path file, BasicFileAttributes attrs) throws InterruptedException {
+        if(stop || pause){
+            return Optional.empty();
         }
 
-        return false;
+        // Search the word in the PDF
+        boolean wordFoundInPDF = false;
+        try {
+            Thread.sleep(1000);
+            wordFoundInPDF = searchWordInPDF(file, word);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return Optional.of(wordFoundInPDF);
     }
 
     /**
@@ -233,7 +225,7 @@ public abstract class AFilePDFSearcher
      *
      * @param file
      */
-    private synchronized void AddResultAndNotify(Path file) {
+    protected void AddResultAndNotify(Path file) {
         searchResult.addResult(file);
         if (guiRegistrable != null) {
             guiRegistrable.onNewResultFile(new ResultEventArgs(file, searchResult.getTotalFiles(), searchResult.getTotalFoundFiles()));

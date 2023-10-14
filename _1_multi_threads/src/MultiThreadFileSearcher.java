@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 public class MultiThreadFileSearcher extends AFilePDFSearcher {
     protected ExecutorService threadPool;
     private long nComputedFiles;
+    private final Object cs = new Object();
 
     public MultiThreadFileSearcher(Path start, String word) {
         super(start, word);
@@ -34,8 +35,13 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
         threadPool.execute(() -> {
             try {
                 var done = searchWordInsideFile(file, attrs);
-                if (done) {
-                    notifyIfFinished();
+                if (done.isPresent()) {
+                    synchronized (cs) {
+                        if(done.get()) {
+                            AddResultAndNotify(file);
+                        }
+                        notifyIfFinished();
+                    }
                 }
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
@@ -43,7 +49,7 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
         });
     }
 
-    protected synchronized void notifyIfFinished() {
+    protected void notifyIfFinished() {
         nComputedFiles++;
 
         if (isResearchFinished() && isFinished()) {
