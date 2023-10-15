@@ -202,7 +202,7 @@ public abstract class AFilePDFSearcher
         guiRegistrable = registrable;
     }
 
-    protected synchronized void notifyFinish() {
+    protected void notifyFinish() {
         searchResult.setElapsedTime(getElapsedTime());
         if (guiRegistrable != null)
             guiRegistrable.onFinish(searchResult);
