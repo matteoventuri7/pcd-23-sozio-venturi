@@ -98,6 +98,7 @@ public class MainGUI {
         emptySelect.addItem("Approach: Virtual Thread");
         emptySelect.addItem("Approach: Task");
         emptySelect.addItem("Approach: Events");
+        emptySelect.addItem("Approach: Reactive");
 
         // Create the computing time label
         messageLabel = new JLabel();
@@ -254,6 +255,9 @@ public class MainGUI {
                 break;
             case "Approach: Events":
                 s = new EventsFileSearcher(file, keyword);
+                break;
+            case "Approach: Reactive":
+                s = new ReactiveFileSearcher(file, keyword);
                 break;
             default:
                 break;

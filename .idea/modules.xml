@@ -6,6 +6,7 @@
       <module fileurl="file://$PROJECT_DIR$/_2_virtual_threads/_2_virtual_threads.iml" filepath="$PROJECT_DIR$/_2_virtual_threads/_2_virtual_threads.iml" />
       <module fileurl="file://$PROJECT_DIR$/_3_task/_3_task.iml" filepath="$PROJECT_DIR$/_3_task/_3_task.iml" />
       <module fileurl="file://$PROJECT_DIR$/_4_events/_4_events.iml" filepath="$PROJECT_DIR$/_4_events/_4_events.iml" />
+      <module fileurl="file://$PROJECT_DIR$/_5_rx/_5_rx.iml" filepath="$PROJECT_DIR$/_5_rx/_5_rx.iml" />
       <module fileurl="file://$PROJECT_DIR$/core/core.iml" filepath="$PROJECT_DIR$/core/core.iml" />
       <module fileurl="file://$PROJECT_DIR$/pcd-23-sozio-venturi.iml" filepath="$PROJECT_DIR$/pcd-23-sozio-venturi.iml" />
     </modules>
