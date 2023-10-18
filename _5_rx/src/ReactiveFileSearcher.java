@@ -3,11 +3,14 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.Semaphore;
 
 public class ReactiveFileSearcher extends AFilePDFSearcher {
     private int nComputedFiles=0;
-    PublishSubject<Path> sourcePaths;
-    Disposable toDispose;
+    private PublishSubject<Path> sourcePaths;
+    private Disposable toDispose;
+    private Semaphore finishSem = new Semaphore(1);
+    private boolean finishAlreadyNotified = false;
 
     public ReactiveFileSearcher(Path start, String word) {
         super(start, word);
@@ -22,11 +25,18 @@ public class ReactiveFileSearcher extends AFilePDFSearcher {
 
             toDispose = sourcePaths
                 .subscribeOn(Schedulers.computation())
+                .observeOn(Schedulers.single()) // to decouple search file to computation
                 .subscribe(file -> {
                     var isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
                     if(isPositive) {
                         AddResultAndNotify(file);
-                        notifyIfFinished();
+                        try {
+                            finishSem.acquire();
+                            notifyIfFinished();
+                            finishSem.release();
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                 });
         }
@@ -47,13 +57,26 @@ public class ReactiveFileSearcher extends AFilePDFSearcher {
     }
 
     protected void notifyIfFinished() {
-        if (isResearchFinished() && isFinished()) {
+        if (!finishAlreadyNotified && isResearchFinished() && isFinished()) {
+            finishAlreadyNotified = true;
             notifyFinish();
         }
     }
 
     private boolean isFinished() {
         return !isPaused() && nComputedFiles == getResult().getTotalFiles();
+    }
+
+    @Override
+    protected void onSearchIsFinished() {
+        super.onSearchIsFinished();
+        try {
+            finishSem.acquire();
+            notifyIfFinished();
+            finishSem.release();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

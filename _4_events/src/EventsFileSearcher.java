@@ -4,11 +4,16 @@ import io.vertx.core.eventbus.EventBus;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Optional;
+import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 
 public class EventsFileSearcher extends AFilePDFSearcher {
     protected final static String topicName = "pdf-search-result";
     private Vertx vertx;
     private int nComputedFiles=0;
+    private boolean finishAlreadyNotified = false;
+    private Semaphore finishSem = new Semaphore(1);
 
     public EventsFileSearcher(Path start, String word) {
         super(start, word);
@@ -26,7 +31,14 @@ public class EventsFileSearcher extends AFilePDFSearcher {
                     eb.<String>consumer(topicName, message -> {
                         String positiveFile = message.body();
                         AddResultAndNotify(Path.of(positiveFile));
-                        notifyIfFinished();
+                        try {
+                            finishSem.acquire();
+                            notifyIfFinished();
+                            finishSem.release();
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+
                     });
                 }
             });
@@ -43,10 +55,10 @@ public class EventsFileSearcher extends AFilePDFSearcher {
             throw new RuntimeException(e);
         }
 
+        nComputedFiles++;
+
         vertx.deployVerticle(new AbstractVerticle(){
             public void start() throws InterruptedException, IOException {
-
-                nComputedFiles++;
                 var isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
                 if(isPositive) {
                     EventBus eb = this.getVertx().eventBus();
@@ -57,13 +69,26 @@ public class EventsFileSearcher extends AFilePDFSearcher {
     }
 
     protected void notifyIfFinished() {
-        if (isResearchFinished() && isFinished()) {
+        if (!finishAlreadyNotified && isResearchFinished() && isFinished()) {
+            finishAlreadyNotified = true;
             notifyFinish();
         }
     }
 
     private boolean isFinished() {
         return !isPaused() && nComputedFiles == getResult().getTotalFiles();
+    }
+
+    @Override
+    protected void onSearchIsFinished() {
+        super.onSearchIsFinished();
+        try {
+            finishSem.acquire();
+            notifyIfFinished();
+            finishSem.release();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

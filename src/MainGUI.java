@@ -298,5 +298,7 @@ public class MainGUI {
         suspendButton.setEnabled(false);
 
         messageLabel.setText("Computing Time: " + result.getElapsedTime() + " ms");
+
+        System.out.println("Computing Time: " + result.getElapsedTime() + " ms");
     }
 }

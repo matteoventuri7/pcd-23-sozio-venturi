@@ -91,7 +91,7 @@ public abstract class AFilePDFSearcher
                                     if (!attrs.isSymbolicLink() &&
                                             attrs.isRegularFile() &&
                                             getExtensionFile(file.getFileName().toString()).equals("pdf")) {
-                                        Thread.sleep(1000);
+                                        //Thread.sleep(1000);
                                         System.out.println("Handling file " + file.toString());
                                         CountNewFileAndNotify();
                                         onFoundPDFFile(file, attrs);
@@ -191,7 +191,7 @@ public abstract class AFilePDFSearcher
             PDFTextStripper stripper = new PDFTextStripper();
             String text = stripper.getText(document);
             boolean contains = text.toLowerCase().contains(word.toLowerCase());
-            Thread.sleep(1000);
+            //Thread.sleep(1000);
             return contains;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -223,7 +223,7 @@ public abstract class AFilePDFSearcher
         // Search the word in the PDF
         boolean wordFoundInPDF = false;
         try {
-            Thread.sleep(1000);
+            //Thread.sleep(1000);
             wordFoundInPDF = searchWordInPDF(file, word);
         } catch (Exception e) {
             e.printStackTrace();
