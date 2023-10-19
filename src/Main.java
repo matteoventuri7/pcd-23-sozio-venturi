@@ -21,7 +21,7 @@ public class Main {
         System.out.println("Enter the keyword:");
         keyword = scanner.nextLine();
 
-        System.out.println("Select the approach (1: Multithreaded, 2: Virtual Thread, 3: Task Java, 4: Events, 5: Reactive):");
+        System.out.println("Select the approach (1: Multithreaded, 2: Virtual Thread, 3: Task Java, 4: Events, 5: Reactive, 6: Actors):");
         int approachChoice = scanner.nextInt();
         scanner.nextLine(); // Consume the remaining newline character
 
@@ -42,6 +42,9 @@ public class Main {
                 break;
             case 5:
                 s = new ReactiveFileSearcher(file, keyword);
+                break;
+            case 6:
+                s = new ActorsFileSearcher(file, keyword);
                 break;
             default:
                 System.out.println("Invalid approach choice. Exiting...");

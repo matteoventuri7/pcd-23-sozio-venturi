@@ -99,6 +99,7 @@ public class MainGUI {
         emptySelect.addItem("Approach: Task");
         emptySelect.addItem("Approach: Events");
         emptySelect.addItem("Approach: Reactive");
+        emptySelect.addItem("Approach: Actors");
 
         // Create the computing time label
         messageLabel = new JLabel();
@@ -258,6 +259,9 @@ public class MainGUI {
                 break;
             case "Approach: Reactive":
                 s = new ReactiveFileSearcher(file, keyword);
+                break;
+            case "Approach: Actors":
+                s = new ActorsFileSearcher(file, keyword);
                 break;
             default:
                 break;

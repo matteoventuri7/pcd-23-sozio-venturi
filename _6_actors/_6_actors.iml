@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="core" />
+    <orderEntry type="module-library">
+      <library name="typesafe.akka.actor.typed_2.13" type="repository">
+        <properties maven-id="com.typesafe.akka:akka-actor-typed_2.13:2.8.5" />
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/com/typesafe/akka/akka-actor-typed_2.13/2.8.5/akka-actor-typed_2.13-2.8.5.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/scala-lang/scala-library/2.13.11/scala-library-2.13.11.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/typesafe/akka/akka-actor_2.13/2.8.5/akka-actor_2.13-2.8.5.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/typesafe/config/1.4.2/config-1.4.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/scala-lang/modules/scala-java8-compat_2.13/1.0.0/scala-java8-compat_2.13-1.0.0.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/typesafe/akka/akka-slf4j_2.13/2.8.5/akka-slf4j_2.13-2.8.5.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+  </component>
+</module>

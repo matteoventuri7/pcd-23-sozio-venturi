@@ -13,5 +13,6 @@
     <orderEntry type="module" module-name="_3_task" />
     <orderEntry type="module" module-name="_4_events" />
     <orderEntry type="module" module-name="_5_rx" />
+    <orderEntry type="module" module-name="_6_actors" />
   </component>
 </module>
