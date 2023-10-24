@@ -48,6 +48,10 @@ public class BrushManager implements AutoCloseable {
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
             Object o = SerializationUtils.deserialize(delivery.getBody());
+            if(((BaseMessage)o).getSenderId().equals(localBrush.getId())){
+                // this is my message. SKIP
+                return;
+            }
             if(o instanceof UpdatePixelMessage){
                 UpdatePixelMessage upMsg = (UpdatePixelMessage)o;
                 grid.set(upMsg.getX(), upMsg.getY(), upMsg.getColor());
@@ -96,12 +100,12 @@ public class BrushManager implements AutoCloseable {
 
     void addBrush(final Brush brush) throws IOException {
         brushes.add(brush);
-        sendMessage(new CreateBrushMessage(brush));
+        sendMessage(new CreateBrushMessage(localBrush.getId(), brush));
     }
 
     void removeBrush(final Brush brush) throws IOException {
         brushes.remove(brush);
-        sendMessage(new RemoveBrushMessage(brush));
+        sendMessage(new RemoveBrushMessage(localBrush.getId(), brush));
     }
 
     @Override
@@ -113,11 +117,11 @@ public class BrushManager implements AutoCloseable {
 
     public void updatePosition(int x, int y) throws IOException {
         localBrush.updatePosition(x,y);
-        sendMessage(new UpdateBrushMessage(localBrush));
+        sendMessage(new UpdateBrushMessage(localBrush.getId(), localBrush));
     }
 
     public void updatePixel(int x, int y, int color) throws IOException {
-        sendMessage(new UpdatePixelMessage(x,y,color));
+        sendMessage(new UpdatePixelMessage(localBrush.getId(), x,y,color));
     }
 
     public void setGrid(PixelGrid grid) {

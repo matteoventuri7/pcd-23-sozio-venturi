@@ -1,8 +1,21 @@
 package _cooperative_pixel_art.core;
 
 import java.io.Serializable;
+import java.util.UUID;
 
-abstract class BrushMessage implements Serializable {
+abstract class BaseMessage implements Serializable{
+    private final UUID senderId;
+
+    public UUID getSenderId() {
+        return senderId;
+    }
+
+    public BaseMessage(UUID senderId){
+        this.senderId=senderId;
+    }
+}
+
+abstract class BrushMessage extends BaseMessage {
     protected final static String COMMAND_CREATE = "CREATE";
     protected final static String COMMAND_REMOVE = "REMOVE";
     protected final static String COMMAND_UPDATE = "UPDATE";
@@ -18,31 +31,32 @@ abstract class BrushMessage implements Serializable {
 
     private final BrushManager.Brush brush;
 
-    public BrushMessage(String command, BrushManager.Brush brush){
+    public BrushMessage(UUID senderId, String command, BrushManager.Brush brush){
+        super(senderId);
         this.command=command;
         this.brush = brush;
     }
 }
 
 class CreateBrushMessage extends BrushMessage{
-    public CreateBrushMessage(BrushManager.Brush brush) {
-        super(COMMAND_CREATE, brush);
+    public CreateBrushMessage(UUID senderId, BrushManager.Brush brush) {
+        super(senderId,COMMAND_CREATE, brush);
     }
 }
 
 class RemoveBrushMessage extends BrushMessage{
-    public RemoveBrushMessage(BrushManager.Brush brush) {
-        super(COMMAND_REMOVE, brush);
+    public RemoveBrushMessage(UUID senderId, BrushManager.Brush brush) {
+        super(senderId,COMMAND_REMOVE, brush);
     }
 }
 
 class UpdateBrushMessage extends BrushMessage{
-    public UpdateBrushMessage(BrushManager.Brush brush) {
-        super(COMMAND_UPDATE, brush);
+    public UpdateBrushMessage(UUID senderId, BrushManager.Brush brush) {
+        super(senderId,COMMAND_UPDATE, brush);
     }
 }
 
-class UpdatePixelMessage implements Serializable {
+class UpdatePixelMessage extends BaseMessage {
     private final int x;
     private final int y;
     private final int color;
@@ -59,7 +73,8 @@ class UpdatePixelMessage implements Serializable {
         return color;
     }
 
-    public UpdatePixelMessage(int x, int y, int color){
+    public UpdatePixelMessage(UUID senderId, int x, int y, int color){
+        super(senderId);
         this.x=x;
         this.y=y;
         this.color=color;
