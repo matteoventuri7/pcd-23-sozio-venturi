@@ -8,6 +8,7 @@
       <module fileurl="file://$PROJECT_DIR$/_4_events/_4_events.iml" filepath="$PROJECT_DIR$/_4_events/_4_events.iml" />
       <module fileurl="file://$PROJECT_DIR$/_5_rx/_5_rx.iml" filepath="$PROJECT_DIR$/_5_rx/_5_rx.iml" />
       <module fileurl="file://$PROJECT_DIR$/_6_actors/_6_actors.iml" filepath="$PROJECT_DIR$/_6_actors/_6_actors.iml" />
+      <module fileurl="file://$PROJECT_DIR$/_cooperative_pixel_art/_cooperative_pixel_art.iml" filepath="$PROJECT_DIR$/_cooperative_pixel_art/_cooperative_pixel_art.iml" />
       <module fileurl="file://$PROJECT_DIR$/core/core.iml" filepath="$PROJECT_DIR$/core/core.iml" />
       <module fileurl="file://$PROJECT_DIR$/pcd-23-sozio-venturi.iml" filepath="$PROJECT_DIR$/pcd-23-sozio-venturi.iml" />
     </modules>

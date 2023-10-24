@@ -171,6 +171,7 @@ public abstract class AFilePDFSearcher
     public void close() throws Exception {
         stop = true;
         fileWalkerSemaphore.release();
+        searcherSemaphore.release();
 
         if(threadPool != null) {
             threadPool.shutdown();
@@ -247,7 +248,7 @@ public abstract class AFilePDFSearcher
     /**
      * Increase the found file counter and notify the observer
      */
-    private synchronized void CountNewFileAndNotify() {
+    private void CountNewFileAndNotify() {
         searchResult.IncreaseTotalFiles();
         if (guiRegistrable != null) {
             guiRegistrable.onNewFoundFile(searchResult.getTotalFiles());

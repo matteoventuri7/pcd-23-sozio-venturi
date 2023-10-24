@@ -69,9 +69,11 @@ public class ActorsFileSearcher extends AFilePDFSearcher{
 
 class FileSearchProtocol {
     public static class FoundFileMessage {
+        // sender
         public final ActorRef<FileSearchProtocol.FoundFileMessage> fileFinderActor;
         public final Path file;
         public final String word;
+        // destination
         public final ActorsFileSearcher searcher;
         public boolean isPositive;
 
