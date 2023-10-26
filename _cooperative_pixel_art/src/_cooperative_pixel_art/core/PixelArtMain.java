@@ -18,7 +18,7 @@ public class PixelArtMain {
 
 		var localBrush = new BrushManager.Brush(UUID.randomUUID().toString(), 0, 0, randomColor());
 
-		try(var brushManager = new BrushManager(localBrush, host, "brushes")) {
+		var brushManager = new BrushManager(localBrush, host, "brushes");
 
 			PixelGrid grid = new PixelGrid(40, 40);
 
@@ -40,7 +40,18 @@ public class PixelArtMain {
 
 			view.addColorChangedListener(localBrush::setColor);
 
+			view.addWindowListener(new java.awt.event.WindowAdapter() {
+				@Override
+				public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+					try {
+						brushManager.close();
+					} catch (Exception e) {
+						throw new RuntimeException(e);
+					}
+				}
+			});
+
 			view.display();
-		}
 	}
 }
+

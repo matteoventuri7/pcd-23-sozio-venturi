@@ -71,9 +71,12 @@ public class BrushManager implements AutoCloseable {
                     brush.color = upMsg.getBrush().color;
                     brush.x = upMsg.getBrush().x;
                     brush.y = upMsg.getBrush().y;
+                } else{
+                    System.out.println("Brush not found");
                 }
             } else {
                 // message unknown
+                System.out.println("Unknown message");
                 return;
             }
 
@@ -99,6 +102,7 @@ public class BrushManager implements AutoCloseable {
     }
 
     void addBrush(final Brush brush) throws IOException {
+        System.out.println("Adding brush " + brush.getId());
         brushes.add(brush);
         sendMessage(new CreateBrushMessage(localBrush.getId(), brush));
     }

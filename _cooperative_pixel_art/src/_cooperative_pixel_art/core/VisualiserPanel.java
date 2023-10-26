@@ -54,4 +54,6 @@ public class VisualiserPanel extends JPanel {
 
         brushManager.draw(g2);
     }
+
+
 }

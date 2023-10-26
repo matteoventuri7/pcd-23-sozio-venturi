@@ -120,4 +120,6 @@ public class PixelGridView extends JFrame {
 			}
 		};
 	}
+	
+
 }
