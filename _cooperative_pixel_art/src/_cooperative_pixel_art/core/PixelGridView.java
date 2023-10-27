@@ -20,14 +20,14 @@ public class PixelGridView extends JFrame {
 
 	private final List<ColorChangeListener> colorChangeListeners;
     
-    public PixelGridView(PixelGrid grid, BrushManager brushManager, int w, int h){
+    public PixelGridView(PixelGrid grid, BrushManager brushManager, String title, int w, int h){
 		this.grid = grid;
 		this.w = w;
 		this.h = h;
 		pixelListeners = new ArrayList<>();
 		movedListener = new ArrayList<>();
 		colorChangeListeners = new ArrayList<>();
-        setTitle(".:: PixelArt ::.");
+        setTitle(title);
 		setResizable(false);
         panel = new VisualiserPanel(grid, brushManager, w, h);
         panel.addMouseListener(createMouseListener());

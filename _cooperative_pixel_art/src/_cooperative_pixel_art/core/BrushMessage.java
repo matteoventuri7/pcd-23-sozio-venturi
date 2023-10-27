@@ -1,6 +1,8 @@
 package _cooperative_pixel_art.core;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 abstract class BaseMessage implements Serializable{
@@ -78,5 +80,30 @@ class UpdatePixelMessage extends BaseMessage {
         this.x=x;
         this.y=y;
         this.color=color;
+    }
+}
+
+class SetupMessageResponse extends BaseMessage{
+    private List<BaseMessage> historyEvents;
+    public SetupMessageResponse(UUID senderId, List<BaseMessage> historyEvents) {
+        super(senderId);
+        this.historyEvents = historyEvents;
+    }
+
+    public List<BaseMessage> getHistoryEvents() {
+        return historyEvents;
+    }
+}
+
+class SetupMessageRequest extends BaseMessage{
+    private final String queueName;
+
+    public SetupMessageRequest(UUID senderId, String queueName) {
+        super(senderId);
+        this.queueName = queueName;
+    }
+
+    public String getQueueName() {
+        return queueName;
     }
 }
