@@ -5,11 +5,11 @@ import java.awt.*;
 
 public class VisualiserPanel extends JPanel {
     private static final int STROKE_SIZE = 1;
-    private final BrushManager brushManager;
+    private final IBrushManager brushManager;
     private final PixelGrid grid;
     private final int w,h;
 
-    public VisualiserPanel(PixelGrid grid, BrushManager brushManager, int w, int h){
+    public VisualiserPanel(PixelGrid grid, IBrushManager brushManager, int w, int h){
         setSize(w,h);
         this.grid = grid;
         this.w = w;

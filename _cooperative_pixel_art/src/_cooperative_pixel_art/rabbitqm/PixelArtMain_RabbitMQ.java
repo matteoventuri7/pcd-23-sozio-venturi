@@ -1,9 +1,14 @@
-package _cooperative_pixel_art.core;
+package _cooperative_pixel_art.rabbitqm;
+
+import _cooperative_pixel_art.core.Brush;
+import _cooperative_pixel_art.core.IBrushManager;
+import _cooperative_pixel_art.core.PixelGrid;
+import _cooperative_pixel_art.core.PixelGridView;
 
 import java.util.Random;
 import java.util.UUID;
 
-public class PixelArtMain {
+public class PixelArtMain_RabbitMQ {
 
 	public static int randomColor() {
 		Random rand = new Random();
@@ -28,9 +33,9 @@ public class PixelArtMain {
 			title = args[3];
 		}
 
-		var localBrush = new BrushManager.Brush(UUID.randomUUID().toString(), 0, 0, randomColor());
+		var localBrush = new Brush(UUID.randomUUID().toString(), 0, 0, randomColor());
 
-		var brushManager = new BrushManager(localBrush, host, exchangeName, iAmBroken);
+		IBrushManager brushManager = new BrushManagerRabbitMQ(localBrush, host, exchangeName, iAmBroken);
 
 		PixelGrid grid = new PixelGrid(40, 40);
 
@@ -46,7 +51,6 @@ public class PixelArtMain {
 
 		view.addPixelGridEventListener((x, y) -> {
 			brushManager.updatePixel(x, y, localBrush.getColor());
-			grid.set(x, y, localBrush.getColor());
 			view.refresh();
 		});
 

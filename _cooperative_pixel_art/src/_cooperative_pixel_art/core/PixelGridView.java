@@ -20,7 +20,7 @@ public class PixelGridView extends JFrame {
 
 	private final List<ColorChangeListener> colorChangeListeners;
     
-    public PixelGridView(PixelGrid grid, BrushManager brushManager, String title, int w, int h){
+    public PixelGridView(PixelGrid grid, IBrushManager brushManager, String title, int w, int h){
 		this.grid = grid;
 		this.w = w;
 		this.h = h;
