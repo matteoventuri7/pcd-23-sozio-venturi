@@ -12,7 +12,11 @@ public class PixelArtMain2_RabbitMQ {
 	public static void main(String[] args) throws Exception {
 		Thread.sleep(5000);
 
-		PixelArtMain_RabbitMQ.main(new String[]{"localhost", "brushes", "false", "PixelArt"});
+		PixelArtMain_RabbitMQ.main(new String[]{"localhost", "brushes", "false", "PixelArt 2"});
+
+		Thread.sleep(30000);
+
+		PixelArtMain_RabbitMQ.main(new String[]{"localhost", "brushes", "false", "PixelArt 3"});
 	}
 }
 

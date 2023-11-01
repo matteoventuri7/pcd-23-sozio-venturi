@@ -62,7 +62,7 @@ public class PixelArtMain_RabbitMQ {
 				try {
 					brushManager.close();
 				} catch (Exception e) {
-					throw new RuntimeException(e);
+					e.printStackTrace();
 				}
 			}
 		});

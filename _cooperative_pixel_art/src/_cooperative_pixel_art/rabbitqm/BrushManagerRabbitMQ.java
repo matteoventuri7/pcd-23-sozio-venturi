@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 
 public class BrushManagerRabbitMQ extends BaseBrushManager {
-
     private Connection connection;
     private Channel channel;
     private final String exchangeName;
@@ -31,15 +30,29 @@ public class BrushManagerRabbitMQ extends BaseBrushManager {
         this.exchangeName=exchangeName;
 
         if(iAmBrokerNode){
-            historyEvents = new ArrayList<>();
+            configureBrokerNode();
         }
+    }
+
+    private void configureBrokerNode() {
+        historyEvents = new ArrayList<>();
     }
 
     private void HandleEvent(Object o){
         switch (o) {
-            case UpdatePixelMessage upMsg -> grid.set(upMsg.getX(), upMsg.getY(), upMsg.getColor());
+            case UpdatePixelMessage upMsg -> { if(grid != null) grid.set(upMsg.getX(), upMsg.getY(), upMsg.getColor()); }
             case CreateBrushMessage cMsg -> brushes.add(cMsg.getBrush());
-            case RemoveBrushMessage rMsg -> brushes.remove(rMsg.getBrush());
+            case RemoveBrushMessage rMsg -> {
+                brushes.remove(rMsg.getBrush());
+                if(brushes.size() == 1 && !iAmBrokerNode){
+                    iAmBrokerNode = true;
+                    configureBrokerNode();
+                    // fill history from grid
+                    for (int x = 0; x < grid.getNumRows(); x++)
+                        for(int y = 0; y < grid.getNumColumns(); y++)
+                            historyEvents.add(new UpdatePixelMessage(localBrush.getId(), x, y, grid.get(x,y)));
+                }
+            }
             case UpdateBrushMessage upMsg -> {
                 var brushMsg = upMsg.getBrush();
                 var optBrush = brushes.stream()
@@ -177,7 +190,8 @@ public class BrushManagerRabbitMQ extends BaseBrushManager {
 
                 HandleEvent(o);
 
-                view.refresh();
+                if(view != null)
+                    view.refresh();
             };
 
             channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {
