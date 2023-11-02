@@ -52,7 +52,7 @@ public class Brush implements Serializable, IBrush {
     public boolean equals(Object o) {
         if (this == o) return true;
 
-        if (o == null || getClass() != o.getClass()) return false;
+        if (!(o instanceof Brush)) return false;
 
         Brush brush = (Brush) o;
 

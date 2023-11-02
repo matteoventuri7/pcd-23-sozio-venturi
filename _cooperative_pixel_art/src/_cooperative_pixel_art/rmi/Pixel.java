@@ -1,16 +1,24 @@
 package _cooperative_pixel_art.rmi;
 
 import java.io.Serializable;
+import java.util.UUID;
 
-public class Pixel implements IPixel, Serializable {
+public class Pixel implements IPixel, ISender, Serializable {
     private final int x;
     private final int y;
     private final int color;
+    private final UUID senderId;
 
-    public Pixel(int x, int y, int color) {
+    public Pixel(int x, int y, int color, UUID senderId) {
         this.x=x;
         this.y=y;
         this.color=color;
+        this.senderId =senderId;
+    }
+
+    @Override
+    public UUID getSenderId() {
+        return senderId;
     }
 
     @Override

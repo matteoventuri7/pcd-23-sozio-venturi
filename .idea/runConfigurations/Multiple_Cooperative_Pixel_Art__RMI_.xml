@@ -1,5 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Multiple Cooperative Pixel Art (RMI)" type="CompoundRunConfigurationType">
+    <toRun name="PixelArtMain2_RMI" type="Application" />
+    <toRun name="PixelArtMain_RMI" type="Application" />
     <method v="2" />
   </configuration>
 </component>

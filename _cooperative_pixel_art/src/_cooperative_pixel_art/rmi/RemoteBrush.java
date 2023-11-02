@@ -3,6 +3,8 @@ package _cooperative_pixel_art.rmi;
 import _cooperative_pixel_art.core.Brush;
 import _cooperative_pixel_art.core.IBrush;
 
+import java.util.UUID;
+
 public class RemoteBrush extends Brush implements IRemoteBrush {
     private final String host;
 
@@ -14,5 +16,10 @@ public class RemoteBrush extends Brush implements IRemoteBrush {
     @Override
     public String getHost() {
         return host;
+    }
+
+    @Override
+    public UUID getSenderId() {
+        return getId();
     }
 }

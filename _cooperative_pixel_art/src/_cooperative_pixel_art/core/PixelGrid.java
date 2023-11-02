@@ -1,8 +1,9 @@
 package _cooperative_pixel_art.core;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
-public class PixelGrid {
+public class PixelGrid implements Serializable {
 	private final int nRows;
 	private final int nColumns;
 	private final int[][] grid;

@@ -36,7 +36,13 @@ public class PixelArtMain_RMI {
 
 		var localBrush = new Brush(UUID.randomUUID().toString(), 0, 0, randomColor());
 
-		IBrushManager brushManager = new RmiBrushManager(localBrush, remoteHost, localHost, iAmPrincipal);
+		IBrushManager brushManager;
+
+		if(iAmPrincipal){
+			brushManager = new RmiServerBrushManager(localBrush, localHost, IRemoteBrushManager.remoteName);
+		} else{
+			brushManager = new RmiClientBrushManager(localBrush, remoteHost, IRemoteBrushManager.remoteName, localHost);
+		}
 
 		PixelGrid grid = new PixelGrid(40, 40);
 
