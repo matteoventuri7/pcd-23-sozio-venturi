@@ -117,12 +117,12 @@ public class BrushManagerRabbitMQ extends BaseBrushManager {
     }
 
     @Override
-    protected void addBrush(final Brush brush) {
+    public void addBrush(final IBrush brush) {
         super.addBrush(brush);
         sendMessage(new CreateBrushMessage(localBrush.getId(), brush));
     }
     @Override
-    protected void removeBrush(final Brush brush) {
+    public void removeBrush(final IBrush brush) {
         super.removeBrush(brush);
         sendMessage(new RemoveBrushMessage(localBrush.getId(), brush));
     }

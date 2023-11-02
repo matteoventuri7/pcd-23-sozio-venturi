@@ -6,7 +6,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import java.io.Serializable;
 import java.util.UUID;
 
-public class Brush implements Serializable {
+public class Brush implements Serializable, IBrush {
     private final String name;
     private int x, y;
     private int color;
@@ -14,6 +14,14 @@ public class Brush implements Serializable {
 
     public Brush(final String name, final int x, final int y, final int color) {
         this.id= UUID.randomUUID();
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.name=name;
+    }
+
+    protected Brush(final UUID id, final String name, final int x, final int y, final int color) {
+        this.id= id;
         this.x = x;
         this.y = y;
         this.color = color;
@@ -56,9 +64,9 @@ public class Brush implements Serializable {
         return new HashCodeBuilder(17, 37).append(id).toHashCode();
     }
 
-    public void update(Brush brush) {
-        this.color = brush.color;
-        this.x = brush.x;
-        this.y = brush.y;
+    public void update(IBrush brush) {
+        this.color = brush.getColor();
+        this.x = brush.getX();
+        this.y = brush.getY();
     }
 }

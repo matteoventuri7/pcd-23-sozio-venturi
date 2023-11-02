@@ -7,13 +7,13 @@ import java.util.UUID;
 
 public abstract class BrushMessage extends BaseMessage {
 
-    public Brush getBrush() {
+    public IBrush getBrush() {
         return brush;
     }
 
-    private final Brush brush;
+    private final IBrush brush;
 
-    public BrushMessage(UUID senderId, Brush brush){
+    public BrushMessage(UUID senderId, IBrush brush){
         super(senderId);
         this.brush = brush;
     }

@@ -7,12 +7,12 @@ import java.util.Set;
 public abstract class BaseBrushManager implements IBrushManager{
     private static final int BRUSH_SIZE = 10;
     private static final int STROKE_SIZE = 2;
-    protected final Set<Brush> brushes = new HashSet<>();
-    protected final Brush localBrush;
+    protected final Set<IBrush> brushes = new HashSet<>();
+    protected final IBrush localBrush;
     protected PixelGrid grid;
     protected PixelGridView view;
 
-    protected BaseBrushManager(Brush localBrush) {
+    protected BaseBrushManager(IBrush localBrush) {
         this.localBrush = localBrush;
     }
 
@@ -36,20 +36,22 @@ public abstract class BaseBrushManager implements IBrushManager{
         });
     }
 
-    protected void addBrush(final Brush brush) {
+    public void addBrush(final IBrush brush) {
         System.out.println("Adding brush " + brush.getId());
         brushes.add(brush);
     }
 
-    protected void removeBrush(final Brush brush) {
+    public void removeBrush(final IBrush brush) {
         brushes.remove(brush);
     }
 
     public void updatePosition(int x, int y) {
         localBrush.updatePosition(x,y);
+        view.refresh();
     }
 
     public void updatePixel(int x, int y, int color) {
         grid.set(x, y, color);
+        view.refresh();
     }
 }

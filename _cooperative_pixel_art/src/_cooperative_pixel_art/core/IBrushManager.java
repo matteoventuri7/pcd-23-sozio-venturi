@@ -13,5 +13,8 @@ public interface IBrushManager extends AutoCloseable {
 
     void updatePixel(int x, int y, int color);
 
+    void addBrush(final IBrush brush);
+    void removeBrush(final IBrush brush);
+
     void run();
 }

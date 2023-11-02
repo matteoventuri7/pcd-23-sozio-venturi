@@ -1,14 +1,16 @@
-package _cooperative_pixel_art.rabbitqm;
+package _cooperative_pixel_art.rmi;
 
 import _cooperative_pixel_art.core.Brush;
 import _cooperative_pixel_art.core.IBrushManager;
 import _cooperative_pixel_art.core.PixelGrid;
 import _cooperative_pixel_art.core.PixelGridView;
+import _cooperative_pixel_art.rabbitqm.BrushManagerRabbitMQ;
 
+import java.io.IOException;
 import java.util.Random;
 import java.util.UUID;
 
-public class PixelArtMain_RabbitMQ {
+public class PixelArtMain_RMI {
 
 	public static int randomColor() {
 		Random rand = new Random();
@@ -16,26 +18,25 @@ public class PixelArtMain_RabbitMQ {
 	}
 
 	public static void main(String[] args) {
-		String host = "localhost";
-		String exchangeName = "brushes";
-		boolean iAmBroken = true;
+		String remoteHost = "localhost", localHost="localhost";
+		boolean iAmPrincipal = true;
 		String title = "PixelArt MAIN";
 		if(args != null && args.length > 0){
-			host = args[0];
+			remoteHost = args[0];
 		}
 		if(args != null && args.length > 1){
-			exchangeName = args[1];
+			iAmPrincipal = args[1].equals("true");
 		}
 		if(args != null && args.length > 2){
-			iAmBroken = args[2].equals("true");
+			title = args[2];
 		}
 		if(args != null && args.length > 3){
-			title = args[3];
+			localHost = args[3];
 		}
 
 		var localBrush = new Brush(UUID.randomUUID().toString(), 0, 0, randomColor());
 
-		IBrushManager brushManager = new BrushManagerRabbitMQ(localBrush, host, exchangeName, iAmBroken);
+		IBrushManager brushManager = new RmiBrushManager(localBrush, remoteHost, localHost, iAmPrincipal);
 
 		PixelGrid grid = new PixelGrid(40, 40);
 
