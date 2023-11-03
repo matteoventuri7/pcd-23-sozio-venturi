@@ -10,13 +10,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-abstract class RmiBrushManager extends BaseBrushManager{
+abstract class RmiBrushManager extends BaseBrushManager {
 
     protected RmiBrushManager(IBrush localBrush) {
         super(localBrush);
     }
 
-    protected IBrush GetLocalCopyBrush(IBrush brush){
+    protected IBrush GetLocalCopyBrush(IBrush brush) {
         var optBrush = brushes.stream()
                 .filter(b -> b.equals(brush))
                 .findFirst();
@@ -41,10 +41,10 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
         peers = new ConcurrentHashMap<>();
     }
 
-    private List<IRemoteBrushManager> getRemotePeersExcept(ISender senderObject){
+    private List<IRemoteBrushManager> getRemotePeersExcept(ISender senderObject) {
         return peers.entrySet()
                 .stream()
-                .filter(e->!e.getKey().equals(senderObject.getSenderId()))
+                .filter(e -> !e.getKey().equals(senderObject.getSenderId()))
                 .map(Map.Entry::getValue).toList();
     }
 
@@ -64,7 +64,7 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
 
     @Override
     public void updatePositionRemote(IRemoteBrush brush) throws RemoteException {
-        if(!brush.equals(localBrush)) {
+        if (!brush.equals(localBrush)) {
             GetLocalCopyBrush(brush).update(brush);
             view.refresh();
         }
@@ -72,7 +72,7 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
         for (IRemoteBrushManager remotePeer : getRemotePeersExcept(brush)) {
             executorService.execute(() -> {
                 try {
-                    System.out.println("Sending position " + brush.getX()+","+brush.getY());
+                    System.out.println("Sending position " + brush.getX() + "," + brush.getY());
                     remotePeer.updatePositionRemote(brush);
                 } catch (RemoteException e) {
                     e.printStackTrace();
@@ -83,7 +83,7 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
 
     @Override
     public void updatePosition(int x, int y) {
-        super.updatePosition(x,y);
+        super.updatePosition(x, y);
         try {
             updatePositionRemote(new RemoteBrush(localBrush, localHost));
         } catch (RemoteException e) {
@@ -117,7 +117,8 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
 
     @Override
     public IHistory addBrushRemote(IRemoteBrush brush) throws RemoteException {
-        super.addBrush(brush);
+        if (!brush.equals(localBrush))
+            super.addBrush(brush);
 
         for (IRemoteBrushManager remotePeer : getRemotePeersExcept(brush)) {
             executorService.execute(() -> {
@@ -143,6 +144,8 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
 
     @Override
     public void addBrush(IBrush brush) {
+        super.addBrush(brush);
+
         try {
             addBrushRemote(new RemoteBrush(brush, localHost));
         } catch (RemoteException e) {
@@ -222,7 +225,11 @@ class RmiClientBrushManager extends RmiBrushManager implements IRemoteBrushManag
 
         try {
             var history = clientPrincipalStub.addBrushRemote(new RemoteBrush(brush, localHost));
-            this.grid = history.getGrid();
+
+            for(int x = 0; x < grid.getNumRows(); x++)
+                for(int y = 0; y < grid.getNumColumns(); y++)
+                    grid.set(x,y,history.getGrid().get(x,y));
+
             this.brushes.addAll(history.getBrushes());
         } catch (RemoteException e) {
             e.printStackTrace();
@@ -267,7 +274,7 @@ class RmiClientBrushManager extends RmiBrushManager implements IRemoteBrushManag
     @Override
     public void updatePositionRemote(IRemoteBrush brush) throws RemoteException {
         GetLocalCopyBrush(brush).update(brush);
-        System.out.println("Received position " + brush.getX()+","+brush.getY());
+        System.out.println("Received position " + brush.getX() + "," + brush.getY());
         view.refresh();
     }
 
