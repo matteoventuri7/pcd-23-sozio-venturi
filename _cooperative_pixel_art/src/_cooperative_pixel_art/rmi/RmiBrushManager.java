@@ -63,6 +63,52 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
     }
 
     @Override
+    public void updatePosition(int x, int y) {
+        super.updatePosition(x, y);
+        try {
+            updatePositionRemote(new RemoteBrush(localBrush, localHost));
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void updatePixel(int x, int y, int color) {
+        try {
+            updatePixelRemote(new Pixel(x, y, color, localBrush.getId()));
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void addBrush(IBrush brush) {
+        super.addBrush(brush);
+
+        try {
+            addBrushRemote(new RemoteBrush(brush, localHost));
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void removeBrush(IBrush brush) {
+        try {
+            removeBrushRemote(new RemoteBrush(brush, localHost));
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void close() throws Exception {
+
+    }
+
+    // REMOTE METHODS CALLED BY PEERS
+
+    @Override
     public void updatePositionRemote(IRemoteBrush brush) throws RemoteException {
         if (!brush.equals(localBrush)) {
             GetLocalCopyBrush(brush).update(brush);
@@ -81,15 +127,6 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
         }
     }
 
-    @Override
-    public void updatePosition(int x, int y) {
-        super.updatePosition(x, y);
-        try {
-            updatePositionRemote(new RemoteBrush(localBrush, localHost));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     public void updatePixelRemote(IPixel pixel) throws RemoteException {
@@ -106,14 +143,6 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
         }
     }
 
-    @Override
-    public void updatePixel(int x, int y, int color) {
-        try {
-            updatePixelRemote(new Pixel(x, y, color, localBrush.getId()));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     public IHistory addBrushRemote(IRemoteBrush brush) throws RemoteException {
@@ -142,16 +171,6 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
         return new History(brushes.stream().toList(), grid);
     }
 
-    @Override
-    public void addBrush(IBrush brush) {
-        super.addBrush(brush);
-
-        try {
-            addBrushRemote(new RemoteBrush(brush, localHost));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     public void removeBrushRemote(IRemoteBrush brush) throws RemoteException {
@@ -169,19 +188,7 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
         }
     }
 
-    @Override
-    public void removeBrush(IBrush brush) {
-        try {
-            removeBrushRemote(new RemoteBrush(brush, localHost));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
 
-    @Override
-    public void close() throws Exception {
-
-    }
 }
 
 class RmiClientBrushManager extends RmiBrushManager implements IRemoteBrushManager {
@@ -226,9 +233,9 @@ class RmiClientBrushManager extends RmiBrushManager implements IRemoteBrushManag
         try {
             var history = clientPrincipalStub.addBrushRemote(new RemoteBrush(brush, localHost));
 
-            for(int x = 0; x < grid.getNumRows(); x++)
-                for(int y = 0; y < grid.getNumColumns(); y++)
-                    grid.set(x,y,history.getGrid().get(x,y));
+            for (int x = 0; x < grid.getNumRows(); x++)
+                for (int y = 0; y < grid.getNumColumns(); y++)
+                    grid.set(x, y, history.getGrid().get(x, y));
 
             this.brushes.addAll(history.getBrushes());
         } catch (RemoteException e) {
@@ -258,8 +265,6 @@ class RmiClientBrushManager extends RmiBrushManager implements IRemoteBrushManag
         }
     }
 
-    // REMOTE METHODS CALLED BY PRINCIPAL SERVER
-
     @Override
     public void updatePixel(int x, int y, int color) {
         super.updatePixel(x, y, color);
@@ -270,6 +275,8 @@ class RmiClientBrushManager extends RmiBrushManager implements IRemoteBrushManag
             e.printStackTrace();
         }
     }
+
+    // REMOTE METHODS CALLED BY PRINCIPAL SERVER
 
     @Override
     public void updatePositionRemote(IRemoteBrush brush) throws RemoteException {

@@ -13,10 +13,10 @@ public class PixelArtMain2_RabbitMQ {
 		Thread.sleep(5000);
 
 		PixelArtMain_RabbitMQ.main(new String[]{"localhost", "brushes", "false", "PixelArt 2"});
-
-		Thread.sleep(30000);
-
 		PixelArtMain_RabbitMQ.main(new String[]{"localhost", "brushes", "false", "PixelArt 3"});
+		PixelArtMain_RabbitMQ.main(new String[]{"localhost", "brushes", "false", "PixelArt 4"});
+		PixelArtMain_RabbitMQ.main(new String[]{"localhost", "brushes", "false", "PixelArt 5"});
+		PixelArtMain_RabbitMQ.main(new String[]{"localhost", "brushes", "false", "PixelArt 6"});
 	}
 }
 

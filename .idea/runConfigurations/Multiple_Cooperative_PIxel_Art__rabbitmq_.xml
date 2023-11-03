@@ -1,5 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Multiple Cooperative PIxel Art (rabbitmq)" type="CompoundRunConfigurationType">
+    <toRun name="PixelArtMain2_RabbitMQ" type="Application" />
+    <toRun name="PixelArtMain_RabbitMQ" type="Application" />
     <method v="2" />
   </configuration>
 </component>
