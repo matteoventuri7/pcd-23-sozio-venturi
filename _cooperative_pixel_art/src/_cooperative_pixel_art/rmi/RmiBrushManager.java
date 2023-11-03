@@ -10,7 +10,22 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-class RmiServerBrushManager extends BaseBrushManager implements IRemoteBrushManager {
+abstract class RmiBrushManager extends BaseBrushManager{
+
+    protected RmiBrushManager(IBrush localBrush) {
+        super(localBrush);
+    }
+
+    protected IBrush GetLocalCopyBrush(IBrush brush){
+        var optBrush = brushes.stream()
+                .filter(b -> b.equals(brush))
+                .findFirst();
+        var brushLocalCopy = optBrush.get();
+        return brushLocalCopy;
+    }
+}
+
+class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManager {
     private final String localHost;
     private final String serviceName;
     Map<UUID, IRemoteBrushManager> peers;
@@ -49,9 +64,15 @@ class RmiServerBrushManager extends BaseBrushManager implements IRemoteBrushMana
 
     @Override
     public void updatePositionRemote(IRemoteBrush brush) throws RemoteException {
+        if(!brush.equals(localBrush)) {
+            GetLocalCopyBrush(brush).update(brush);
+            view.refresh();
+        }
+
         for (IRemoteBrushManager remotePeer : getRemotePeersExcept(brush)) {
             executorService.execute(() -> {
                 try {
+                    System.out.println("Sending position " + brush.getX()+","+brush.getY());
                     remotePeer.updatePositionRemote(brush);
                 } catch (RemoteException e) {
                     e.printStackTrace();
@@ -62,7 +83,7 @@ class RmiServerBrushManager extends BaseBrushManager implements IRemoteBrushMana
 
     @Override
     public void updatePosition(int x, int y) {
-        super.updatePosition(x, y);
+        super.updatePosition(x,y);
         try {
             updatePositionRemote(new RemoteBrush(localBrush, localHost));
         } catch (RemoteException e) {
@@ -72,6 +93,8 @@ class RmiServerBrushManager extends BaseBrushManager implements IRemoteBrushMana
 
     @Override
     public void updatePixelRemote(IPixel pixel) throws RemoteException {
+        super.updatePixel(pixel.getX(), pixel.getY(), pixel.getColor());
+
         for (IRemoteBrushManager remotePeer : getRemotePeersExcept(pixel)) {
             executorService.execute(() -> {
                 try {
@@ -85,7 +108,6 @@ class RmiServerBrushManager extends BaseBrushManager implements IRemoteBrushMana
 
     @Override
     public void updatePixel(int x, int y, int color) {
-        super.updatePixel(x, y, color);
         try {
             updatePixelRemote(new Pixel(x, y, color, localBrush.getId()));
         } catch (RemoteException e) {
@@ -95,6 +117,8 @@ class RmiServerBrushManager extends BaseBrushManager implements IRemoteBrushMana
 
     @Override
     public IHistory addBrushRemote(IRemoteBrush brush) throws RemoteException {
+        super.addBrush(brush);
+
         for (IRemoteBrushManager remotePeer : getRemotePeersExcept(brush)) {
             executorService.execute(() -> {
                 try {
@@ -104,6 +128,7 @@ class RmiServerBrushManager extends BaseBrushManager implements IRemoteBrushMana
                 }
             });
         }
+
         if (!brush.equals(localBrush)) {
             // add to peers
             try {
@@ -118,7 +143,6 @@ class RmiServerBrushManager extends BaseBrushManager implements IRemoteBrushMana
 
     @Override
     public void addBrush(IBrush brush) {
-        super.addBrush(brush);
         try {
             addBrushRemote(new RemoteBrush(brush, localHost));
         } catch (RemoteException e) {
@@ -128,6 +152,8 @@ class RmiServerBrushManager extends BaseBrushManager implements IRemoteBrushMana
 
     @Override
     public void removeBrushRemote(IRemoteBrush brush) throws RemoteException {
+        super.removeBrush(brush);
+
         peers.remove(brush.getId());
         for (IRemoteBrushManager remotePeer : getRemotePeersExcept(brush)) {
             executorService.execute(() -> {
@@ -142,7 +168,6 @@ class RmiServerBrushManager extends BaseBrushManager implements IRemoteBrushMana
 
     @Override
     public void removeBrush(IBrush brush) {
-        super.removeBrush(brush);
         try {
             removeBrushRemote(new RemoteBrush(brush, localHost));
         } catch (RemoteException e) {
@@ -156,7 +181,7 @@ class RmiServerBrushManager extends BaseBrushManager implements IRemoteBrushMana
     }
 }
 
-class RmiClientBrushManager extends BaseBrushManager implements IRemoteBrushManager {
+class RmiClientBrushManager extends RmiBrushManager implements IRemoteBrushManager {
     final String remoteHost, localHost;
     private final String remoteServiceName;
     private IRemoteBrushManager clientPrincipalStub;
@@ -218,7 +243,6 @@ class RmiClientBrushManager extends BaseBrushManager implements IRemoteBrushMana
     @Override
     public void updatePosition(int x, int y) {
         super.updatePosition(x, y);
-        view.refresh();
 
         try {
             clientPrincipalStub.updatePositionRemote(new RemoteBrush(localBrush, localHost));
@@ -232,7 +256,6 @@ class RmiClientBrushManager extends BaseBrushManager implements IRemoteBrushMana
     @Override
     public void updatePixel(int x, int y, int color) {
         super.updatePixel(x, y, color);
-        view.refresh();
 
         try {
             clientPrincipalStub.updatePixelRemote(new Pixel(x, y, color, localBrush.getId()));
@@ -243,11 +266,9 @@ class RmiClientBrushManager extends BaseBrushManager implements IRemoteBrushMana
 
     @Override
     public void updatePositionRemote(IRemoteBrush brush) throws RemoteException {
-        var optBrush = brushes.stream()
-                .filter(b -> b.equals(brush))
-                .findFirst();
-        var brushLocalCopy = optBrush.get();
-        brushLocalCopy.update(brush);
+        GetLocalCopyBrush(brush).update(brush);
+        System.out.println("Received position " + brush.getX()+","+brush.getY());
+        view.refresh();
     }
 
     @Override

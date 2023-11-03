@@ -39,10 +39,12 @@ public abstract class BaseBrushManager implements IBrushManager{
     public void addBrush(final IBrush brush) {
         System.out.println("Adding brush " + brush.getId());
         brushes.add(brush);
+        view.refresh();
     }
 
     public void removeBrush(final IBrush brush) {
         brushes.remove(brush);
+        view.refresh();
     }
 
     public void updatePosition(int x, int y) {
