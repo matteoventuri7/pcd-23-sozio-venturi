@@ -74,7 +74,6 @@ public class TaskFileSearcher extends AFilePDFSearcher {
         if(threadPool != null) {
             threadPool.shutdown();
             threadPool.awaitTermination(1, TimeUnit.SECONDS);
-            threadPool.close();
         }
     }
 }
