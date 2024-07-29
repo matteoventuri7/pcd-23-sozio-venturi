@@ -1,11 +1,13 @@
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Optional;
 import java.util.concurrent.*;
 
 public class MultiThreadFileSearcher extends AFilePDFSearcher {
     protected ExecutorService threadPool;
     private long nComputedFiles;
     private Semaphore sem = new Semaphore(1, true);
+    private long spawnedThreads = 0;
 
     public MultiThreadFileSearcher(Path start, String word) {
         super(start, word);
@@ -29,6 +31,8 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
 
     @Override
     protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws RejectedExecutionException {
+        spawnedThreads++;
+
         threadPool.execute(() -> {
             try {
                 CheckStartSearch();
@@ -58,6 +62,16 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
 
     private boolean isFinished() {
         return !isPaused() && nComputedFiles == getResult().getTotalFiles();
+    }
+
+    @Override
+    protected void onSearchIsFinished() {
+        super.onSearchIsFinished();
+
+        if(spawnedThreads == getResult().getTotalFiles()){
+            // notify the end whether the file search end after the threads
+            notifyFinish();
+        }
     }
 
     @Override

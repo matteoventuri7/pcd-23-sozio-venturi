@@ -49,23 +49,10 @@ public class TaskFileSearcher extends AFilePDFSearcher {
     protected void onSearchIsFinished() {
         super.onSearchIsFinished();
 
-        long elaboratedFilesCounter = 0;
-        for (Future<Optional<Boolean>> res: futures) {
-            try {
-                var optional = res.get();
-                if(optional.isPresent()){
-                    elaboratedFilesCounter++;
-                }
-            } catch (Exception ex){
-                ex.printStackTrace();
-            }
+        if(futures.size() == getResult().getTotalFiles()){
+            // notify the end whether the file search end after the threads
+            notifyFinish();
         }
-
-        if(elaboratedFilesCounter != getResult().getTotalFoundFiles()){
-            // TODO handle error advise
-        }
-
-        notifyFinish();
     }
 
     @Override
