@@ -12,8 +12,11 @@ import java.util.concurrent.Executors;
 
 abstract class RmiBrushManager extends BaseBrushManager {
 
+    private ExecutorService executorService;
+
     protected RmiBrushManager(IBrush localBrush) {
         super(localBrush);
+        executorService = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     protected IBrush GetLocalCopyBrush(IBrush brush) {
@@ -23,6 +26,10 @@ abstract class RmiBrushManager extends BaseBrushManager {
         var brushLocalCopy = optBrush.get();
         return brushLocalCopy;
     }
+
+    protected void EnqueueAction(Runnable command){
+        executorService.execute(command);
+    }
 }
 
 class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManager {
@@ -30,13 +37,12 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
     private final String serviceName;
     Map<UUID, IRemoteBrushManager> peers;
     List<BaseMessage> historyEvents;
-    ExecutorService executorService;
 
     public RmiServerBrushManager(Brush localBrush, String localhost, String serviceName) {
         super(localBrush);
         this.serviceName = serviceName;
         this.localHost = localhost;
-        executorService = Executors.newVirtualThreadPerTaskExecutor();
+
         historyEvents = new ArrayList<>();
         peers = new ConcurrentHashMap<>();
     }
@@ -116,7 +122,7 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
         }
 
         for (IRemoteBrushManager remotePeer : getRemotePeersExcept(brush)) {
-            executorService.execute(() -> {
+            EnqueueAction(() -> {
                 try {
                     System.out.println("Sending position " + brush.getX() + "," + brush.getY());
                     remotePeer.updatePositionRemote(brush);
@@ -133,7 +139,7 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
         super.updatePixel(pixel.getX(), pixel.getY(), pixel.getColor());
 
         for (IRemoteBrushManager remotePeer : getRemotePeersExcept(pixel)) {
-            executorService.execute(() -> {
+            EnqueueAction(() -> {
                 try {
                     remotePeer.updatePixelRemote(pixel);
                 } catch (RemoteException e) {
@@ -150,7 +156,7 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
             super.addBrush(brush);
 
         for (IRemoteBrushManager remotePeer : getRemotePeersExcept(brush)) {
-            executorService.execute(() -> {
+            EnqueueAction(() -> {
                 try {
                     remotePeer.addBrushRemote(brush);
                 } catch (RemoteException e) {
@@ -178,7 +184,7 @@ class RmiServerBrushManager extends RmiBrushManager implements IRemoteBrushManag
 
         peers.remove(brush.getId());
         for (IRemoteBrushManager remotePeer : getRemotePeersExcept(brush)) {
-            executorService.execute(() -> {
+            EnqueueAction(() -> {
                 try {
                     remotePeer.removeBrushRemote(brush);
                 } catch (RemoteException e) {
@@ -230,50 +236,58 @@ class RmiClientBrushManager extends RmiBrushManager implements IRemoteBrushManag
     public void addBrush(IBrush brush) {
         super.addBrush(brush);
 
-        try {
-            var history = clientPrincipalStub.addBrushRemote(new RemoteBrush(brush, localHost));
+        EnqueueAction(() -> {
+            try {
+                var history = clientPrincipalStub.addBrushRemote(new RemoteBrush(brush, localHost));
 
-            for (int x = 0; x < grid.getNumRows(); x++)
-                for (int y = 0; y < grid.getNumColumns(); y++)
-                    grid.set(x, y, history.getGrid().get(x, y));
+                for (int x = 0; x < grid.getNumRows(); x++)
+                    for (int y = 0; y < grid.getNumColumns(); y++)
+                        grid.set(x, y, history.getGrid().get(x, y));
 
-            this.brushes.addAll(history.getBrushes());
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+                this.brushes.addAll(history.getBrushes());
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override
     public void removeBrush(IBrush brush) {
         super.removeBrush(brush);
 
-        try {
-            clientPrincipalStub.removeBrushRemote(new RemoteBrush(brush, localHost));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        EnqueueAction(() -> {
+            try {
+                clientPrincipalStub.removeBrushRemote(new RemoteBrush(brush, localHost));
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override
     public void updatePosition(int x, int y) {
         super.updatePosition(x, y);
 
-        try {
-            clientPrincipalStub.updatePositionRemote(new RemoteBrush(localBrush, localHost));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        EnqueueAction(() -> {
+            try {
+                clientPrincipalStub.updatePositionRemote(new RemoteBrush(localBrush, localHost));
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override
     public void updatePixel(int x, int y, int color) {
         super.updatePixel(x, y, color);
 
-        try {
-            clientPrincipalStub.updatePixelRemote(new Pixel(x, y, color, localBrush.getId()));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        EnqueueAction(() -> {
+            try {
+                clientPrincipalStub.updatePixelRemote(new Pixel(x, y, color, localBrush.getId()));
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     // REMOTE METHODS CALLED BY PRINCIPAL SERVER
