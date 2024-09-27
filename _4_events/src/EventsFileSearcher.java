@@ -1,11 +1,11 @@
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Optional;
-import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 
 public class EventsFileSearcher extends AFilePDFSearcher {
@@ -59,11 +59,24 @@ public class EventsFileSearcher extends AFilePDFSearcher {
 
         vertx.deployVerticle(new AbstractVerticle(){
             public void start() throws InterruptedException, IOException {
-                var isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
-                if(isPositive) {
-                    EventBus eb = this.getVertx().eventBus();
-                    eb.publish(EventsFileSearcher.topicName, file.toString());
-                }
+                var futResult = vertx.<Boolean>executeBlocking(p -> {
+                    Boolean isPositive;
+
+                    try {
+                        isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
+                    } catch (IOException e) {
+                        isPositive = false;
+                    }
+
+                    p.complete(isPositive);
+                });
+
+                futResult.onComplete(res ->{
+                    if(res.result()) {
+                        EventBus eb = this.getVertx().eventBus();
+                        eb.publish(EventsFileSearcher.topicName, file.toString());
+                    }
+                });
             }
         });
     }
