@@ -2,18 +2,22 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.JsonObject;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Optional;
 import java.util.concurrent.Semaphore;
 
 public class EventsFileSearcher extends AFilePDFSearcher {
-    protected final static String topicName = "pdf-search-result";
+    protected final static String topicNameResults = "pdf-search-result";
+    protected final static String topicNameSearcher = "pdf-search-request";
     private Vertx vertx;
     private int nComputedFiles=0;
     private boolean finishAlreadyNotified = false;
     private Semaphore finishSem = new Semaphore(1);
+    private Future<String> _futSearcher;
+    private EventBus _eventBus;
 
     public EventsFileSearcher(Path start, String word) {
         super(start, word);
@@ -28,7 +32,7 @@ public class EventsFileSearcher extends AFilePDFSearcher {
             vertx.deployVerticle(new AbstractVerticle(){
                 public void start() {
                     EventBus eb = this.getVertx().eventBus();
-                    eb.<String>consumer(topicName, message -> {
+                    eb.<String>consumer(topicNameResults, message -> {
                         String positiveFile = message.body();
                         AddResultAndNotify(Path.of(positiveFile));
                         try {
@@ -42,6 +46,10 @@ public class EventsFileSearcher extends AFilePDFSearcher {
                     });
                 }
             });
+
+            _futSearcher = vertx.deployVerticle(new SearcherVerticle());
+
+            _eventBus = vertx.eventBus();
         }
 
         super.start();
@@ -57,28 +65,13 @@ public class EventsFileSearcher extends AFilePDFSearcher {
 
         nComputedFiles++;
 
-        vertx.deployVerticle(new AbstractVerticle(){
-            public void start() throws InterruptedException, IOException {
-                var futResult = vertx.<Boolean>executeBlocking(p -> {
-                    Boolean isPositive;
+        JsonObject message = new JsonObject()
+                .put("file", file.toString())
+                .put("word", word);
 
-                    try {
-                        isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
-                    } catch (IOException e) {
-                        isPositive = false;
-                    }
+        var json = message.encode();
 
-                    p.complete(isPositive);
-                });
-
-                futResult.onComplete(res ->{
-                    if(res.result()) {
-                        EventBus eb = this.getVertx().eventBus();
-                        eb.publish(EventsFileSearcher.topicName, file.toString());
-                    }
-                });
-            }
-        });
+        _eventBus.publish(topicNameSearcher, json);
     }
 
     protected void notifyIfFinished() {
@@ -110,5 +103,37 @@ public class EventsFileSearcher extends AFilePDFSearcher {
         if(vertx != null) {
             vertx.close();
         }
+    }
+}
+
+class SearcherVerticle extends AbstractVerticle {
+    @Override
+    public void start() {
+        EventBus eb = this.getVertx().eventBus();
+        eb.consumer(EventsFileSearcher.topicNameSearcher, message -> {
+            var json = message.body().toString();
+            JsonObject request = new JsonObject(json);
+
+            var file = Path.of(request.getString("file"));
+            var word = request.getString("word");
+
+            var futResult = vertx.<Boolean>executeBlocking(p -> {
+                Boolean isPositive;
+
+                try {
+                    isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
+                } catch (IOException e) {
+                    isPositive = false;
+                }
+
+                p.complete(isPositive);
+            });
+
+            futResult.onComplete(res ->{
+                if(res.result()) {
+                    eb.publish(EventsFileSearcher.topicNameResults, file.toString());
+                }
+            });
+        });
     }
 }
