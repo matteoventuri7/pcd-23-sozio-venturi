@@ -2,10 +2,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.*;
@@ -81,8 +78,19 @@ public abstract class AFilePDFSearcher
         threadPool.execute(() -> {
             try {
                 Files.walkFileTree(startDir, new SimpleFileVisitor<Path>() {
+
+                    @Override
+                    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+                        if (exc instanceof AccessDeniedException) {
+                            return FileVisitResult.SKIP_SUBTREE;
+                        }
+
+                        return super.visitFileFailed(file, exc);
+                    }
+
                     @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                        System.out.println(file.toString());
                         try {
                             if (!stop) {
                                 try {
@@ -96,13 +104,15 @@ public abstract class AFilePDFSearcher
                                         CountNewFileAndNotify();
                                         onFoundPDFFile(file, attrs);
                                     }
+                                } catch (Exception ex) {
+                                    int i = 0;
                                 } finally {
                                     fileWalkerSemaphore.release();
                                 }
                             } else {
                                 return FileVisitResult.TERMINATE;
                             }
-                        } catch (InterruptedException e) {
+                        } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
                         return super.visitFile(file, attrs);

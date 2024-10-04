@@ -109,29 +109,21 @@ public class EventsFileSearcher extends AFilePDFSearcher {
 class SearcherVerticle extends AbstractVerticle {
     @Override
     public void start() {
-        EventBus eb = this.getVertx().eventBus();
-        eb.consumer(EventsFileSearcher.topicNameSearcher, message -> {
+        this.getVertx().eventBus().consumer(EventsFileSearcher.topicNameSearcher, message -> {
             var json = message.body().toString();
             JsonObject request = new JsonObject(json);
 
             var file = Path.of(request.getString("file"));
             var word = request.getString("word");
 
-            var futResult = vertx.<Boolean>executeBlocking(p -> {
-                Boolean isPositive;
-
+            this.getVertx().getOrCreateContext().runOnContext(_ -> {
                 try {
-                    isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
+                    var isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
+                    if(isPositive) {
+                        this.getVertx().eventBus().publish(EventsFileSearcher.topicNameResults, file.toString());
+                    }
                 } catch (IOException e) {
-                    isPositive = false;
-                }
-
-                p.complete(isPositive);
-            });
-
-            futResult.onComplete(res ->{
-                if(res.result()) {
-                    eb.publish(EventsFileSearcher.topicNameResults, file.toString());
+                    throw new RuntimeException(e);
                 }
             });
         });
