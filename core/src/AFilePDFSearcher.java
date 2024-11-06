@@ -105,7 +105,7 @@ public abstract class AFilePDFSearcher
                                         onFoundPDFFile(file, attrs);
                                     }
                                 } catch (Exception ex) {
-                                    int i = 0;
+                                    throw new RuntimeException(ex);
                                 } finally {
                                     fileWalkerSemaphore.release();
                                 }

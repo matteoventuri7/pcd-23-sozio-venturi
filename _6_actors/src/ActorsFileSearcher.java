@@ -101,21 +101,10 @@ class FileSearchProtocolBehaviour extends AbstractBehavior<FileSearchProtocol.Fo
         getContext().getLog().info("Found file " + msg.file + " from " + this.getContext().getSelf());
 
         var isPositive = AFilePDFSearcher.searchWordInPDF(msg.file, msg.word);
-        if(isPositive) {
-            getContext().getLog().info("File " + msg.file + " from " + this.getContext().getSelf() + " contains text!");
 
-            msg.isPositive = isPositive;
-            msg.fileFinderActor.tell(msg);
-        }
+        msg.isPositive = isPositive;
+        msg.fileFinderActor.tell(msg);
 
-        msg.searcher.nComputedFiles++;
-        try {
-            msg.searcher.finishSem.acquire();
-            msg.searcher.notifyIfFinished();
-            msg.searcher.finishSem.release();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
         return this;
     }
 
@@ -132,13 +121,19 @@ class PositiveFileSearchProtocolBehaviour extends AbstractBehavior<FileSearchPro
     private Behavior<FileSearchProtocol.FoundFileMessage> onPositiveFound(FileSearchProtocol.FoundFileMessage msg) {
         getContext().getLog().info("File " + msg.file + " from " + this.getContext().getSelf() + " contains text!");
 
-        msg.searcher.AddResultAndNotify(msg.file);
+        if(msg.isPositive) {
+            msg.searcher.AddResultAndNotify(msg.file);
+        }
+
+        msg.searcher.nComputedFiles++;
+
         try {
             msg.searcher.finishSem.acquire();
             msg.searcher.notifyIfFinished();
-            msg.searcher.finishSem.release();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        } finally {
+            msg.searcher.finishSem.release();
         }
 
         return this;
