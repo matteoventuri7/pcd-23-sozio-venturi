@@ -39,10 +39,15 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
                 var done = searchWordInsideFile(file, attrs);
                 if (done.isPresent()) {
                     sem.acquire();
+
+                    nComputedFiles++;
+
                     if(done.get()) {
                         addResultAndNotify(file);
                     }
+
                     notifyIfFinished();
+
                     sem.release();
                 }
             } catch (InterruptedException e) {
@@ -52,8 +57,6 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
     }
 
     protected void notifyIfFinished() {
-        nComputedFiles++;
-
         if (isResearchFinished() && isFinished()) {
             notifyFinish();
         }
@@ -64,13 +67,11 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
     }
 
     @Override
-    protected void onSearchIsFinished() {
+    protected void onSearchIsFinished() throws InterruptedException {
         super.onSearchIsFinished();
-
-        if(spawnedThreads == getResult().getTotalFiles()){
-            // notify the end whether the file search end after the threads
-            notifyFinish();
-        }
+        sem.acquire();
+        notifyIfFinished();
+        sem.release();
     }
 
     @Override

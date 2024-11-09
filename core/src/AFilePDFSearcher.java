@@ -118,7 +118,11 @@ public abstract class AFilePDFSearcher
                     @Override
                     public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
                         if (stop || dir.equals(startDir)) {
-                            onSearchIsFinished();
+                            try {
+                                onSearchIsFinished();
+                            } catch (InterruptedException e) {
+
+                            }
                             return FileVisitResult.TERMINATE;
                         }
                         return super.postVisitDirectory(dir, exc);
@@ -131,7 +135,7 @@ public abstract class AFilePDFSearcher
         });
     }
 
-    protected void onSearchIsFinished() {
+    protected void onSearchIsFinished() throws InterruptedException {
         researchIsfinished = true;
     }
 
@@ -140,7 +144,7 @@ public abstract class AFilePDFSearcher
      *
      * @param file The found file
      */
-    protected abstract void onFoundPDFFile(Path file, BasicFileAttributes attrs);
+    protected abstract void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws InterruptedException;
 
     private String getExtensionFile(String filename) {
         return filename.substring(filename.lastIndexOf(".") + 1);
@@ -198,10 +202,9 @@ public abstract class AFilePDFSearcher
             PDFTextStripper stripper = new PDFTextStripper();
             String text = stripper.getText(document);
             boolean contains = text.toLowerCase().contains(word.toLowerCase());
-            //Thread.sleep(1000);
             return contains;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            return false;
         }
     }
 
@@ -258,5 +261,9 @@ public abstract class AFilePDFSearcher
         if (guiRegistrable != null) {
             guiRegistrable.onNewFoundFile(searchResult.getTotalFiles());
         }
+    }
+
+    protected void log(String s){
+        System.out.println(Thread.currentThread().getName()+ " - " + s);
     }
 }

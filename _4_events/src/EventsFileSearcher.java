@@ -1,5 +1,4 @@
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
@@ -14,9 +13,7 @@ public class EventsFileSearcher extends AFilePDFSearcher {
     protected final static String topicNameSearcher = "pdf-search-request";
     private Vertx vertx;
     private int nComputedFiles=0;
-    private boolean finishAlreadyNotified = false;
     private Semaphore finishSem = new Semaphore(1);
-    private Future<String> _futSearcher;
     private EventBus _eventBus;
 
     public EventsFileSearcher(Path start, String word) {
@@ -34,20 +31,26 @@ public class EventsFileSearcher extends AFilePDFSearcher {
                     EventBus eb = this.getVertx().eventBus();
                     eb.<String>consumer(topicNameResults, message -> {
                         String positiveFile = message.body();
-                        addResultAndNotify(Path.of(positiveFile));
-                        try {
-                            finishSem.acquire();
-                            notifyIfFinished();
-                            finishSem.release();
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
+
+                        if(positiveFile != null) {
+                            addResultAndNotify(Path.of(positiveFile));
                         }
 
+                        try {
+                            finishSem.acquire();
+                            nComputedFiles++;
+
+                            notifyIfFinished();
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            finishSem.release();
+                        }
                     });
                 }
             });
 
-            _futSearcher = vertx.deployVerticle(new SearcherVerticle());
+            vertx.deployVerticle(new SearcherVerticle());
 
             _eventBus = vertx.eventBus();
         }
@@ -56,14 +59,8 @@ public class EventsFileSearcher extends AFilePDFSearcher {
     }
 
     @Override
-    protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) {
-        try {
-            CheckStartSearch();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        nComputedFiles++;
+    protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws InterruptedException {
+        CheckStartSearch();
 
         JsonObject message = new JsonObject()
                 .put("file", file.toString())
@@ -75,8 +72,7 @@ public class EventsFileSearcher extends AFilePDFSearcher {
     }
 
     protected void notifyIfFinished() {
-        if (!finishAlreadyNotified && isResearchFinished() && isFinished()) {
-            finishAlreadyNotified = true;
+        if (isResearchFinished() && isFinished()) {
             notifyFinish();
         }
     }
@@ -86,14 +82,15 @@ public class EventsFileSearcher extends AFilePDFSearcher {
     }
 
     @Override
-    protected void onSearchIsFinished() {
+    protected void onSearchIsFinished() throws InterruptedException {
         super.onSearchIsFinished();
         try {
             finishSem.acquire();
             notifyIfFinished();
-            finishSem.release();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        } finally {
+            finishSem.release();
         }
     }
 
@@ -111,6 +108,7 @@ class SearcherVerticle extends AbstractVerticle {
     public void start() {
         this.getVertx().eventBus().consumer(EventsFileSearcher.topicNameSearcher, message -> {
             var json = message.body().toString();
+
             JsonObject request = new JsonObject(json);
 
             var file = Path.of(request.getString("file"));
@@ -119,8 +117,11 @@ class SearcherVerticle extends AbstractVerticle {
             this.getVertx().getOrCreateContext().runOnContext(_ -> {
                 try {
                     var isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
+
                     if(isPositive) {
                         this.getVertx().eventBus().publish(EventsFileSearcher.topicNameResults, file.toString());
+                    } else{
+                        this.getVertx().eventBus().publish(EventsFileSearcher.topicNameResults, null);
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);

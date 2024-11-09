@@ -46,11 +46,16 @@ public class TaskFileSearcher extends AFilePDFSearcher {
     }
 
     @Override
-    protected void onSearchIsFinished() {
+    protected void onSearchIsFinished() throws InterruptedException {
         super.onSearchIsFinished();
 
         if(futures.size() == getResult().getTotalFiles()){
             // notify the end whether the file search end after the threads
+            for(var f : futures){
+                try {
+                    f.get();
+                } catch (Exception e) {}
+            }
             notifyFinish();
         }
     }

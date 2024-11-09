@@ -3,10 +3,12 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.subjects.PublishSubject;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.Semaphore;
 
 public class ReactiveFileSearcher extends AFilePDFSearcher {
     private PublishSubject<Path> sourcePaths;
     private Disposable toDispose;
+    private Semaphore sem = new Semaphore(1);
 
     public ReactiveFileSearcher(Path start, String word) {
         super(start, word);
@@ -22,7 +24,9 @@ public class ReactiveFileSearcher extends AFilePDFSearcher {
                 .subscribe(file -> {
                     var isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
                     if(isPositive) {
+                        sem.acquire();
                         addResultAndNotify(file);
+                        sem.release();
                     }
                 }, Throwable::printStackTrace, this::notifyFinish);
         }
@@ -31,18 +35,13 @@ public class ReactiveFileSearcher extends AFilePDFSearcher {
     }
 
     @Override
-    protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) {
-        try {
-            CheckStartSearch();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
+    protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws InterruptedException {
+        CheckStartSearch();
         sourcePaths.onNext(file);
     }
 
     @Override
-    protected void onSearchIsFinished() {
+    protected void onSearchIsFinished() throws InterruptedException {
         super.onSearchIsFinished();
         sourcePaths.onComplete();
     }

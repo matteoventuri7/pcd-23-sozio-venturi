@@ -26,18 +26,14 @@ public class ActorsFileSearcher extends AFilePDFSearcher{
     }
 
     @Override
-    protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) {
-        try {
-            CheckStartSearch();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+    protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws InterruptedException {
+        CheckStartSearch();
 
         fileFinderActor.tell(new FileSearchProtocol.FoundFileMessage(this, positiveFileFoundActor, file, word));
     }
 
     @Override
-    protected void onSearchIsFinished() {
+    protected void onSearchIsFinished() throws InterruptedException {
         super.onSearchIsFinished();
         try {
             finishSem.acquire();
