@@ -122,7 +122,7 @@ class PositiveFileSearchProtocolBehaviour extends AbstractBehavior<FileSearchPro
         getContext().getLog().info("File " + msg.file + " from " + this.getContext().getSelf() + " contains text!");
 
         if(msg.isPositive) {
-            msg.searcher.AddResultAndNotify(msg.file);
+            msg.searcher.addResultAndNotify(msg.file);
         }
 
         msg.searcher.nComputedFiles++;

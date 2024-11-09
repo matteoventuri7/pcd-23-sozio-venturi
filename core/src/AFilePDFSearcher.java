@@ -90,7 +90,6 @@ public abstract class AFilePDFSearcher
 
                     @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                        System.out.println(file.toString());
                         try {
                             if (!stop) {
                                 try {
@@ -99,9 +98,7 @@ public abstract class AFilePDFSearcher
                                     if (!attrs.isSymbolicLink() &&
                                             attrs.isRegularFile() &&
                                             getExtensionFile(file.getFileName().toString()).equals("pdf")) {
-                                        //Thread.sleep(1000);
-                                        System.out.println("Handling file " + file.toString());
-                                        CountNewFileAndNotify();
+                                        countNewFileAndNotify();
                                         onFoundPDFFile(file, attrs);
                                     }
                                 } catch (Exception ex) {
@@ -129,7 +126,7 @@ public abstract class AFilePDFSearcher
                 });
             } catch (Exception e) {
                 // some errors here but prevent block
-                System.out.println(e.toString());
+                throw new RuntimeException(e);
             }
         });
     }
@@ -233,7 +230,6 @@ public abstract class AFilePDFSearcher
         // Search the word in the PDF
         boolean wordFoundInPDF = false;
         try {
-            //Thread.sleep(1000);
             wordFoundInPDF = searchWordInPDF(file, word);
         } catch (Exception e) {
             e.printStackTrace();
@@ -247,7 +243,7 @@ public abstract class AFilePDFSearcher
      *
      * @param file
      */
-    protected void AddResultAndNotify(Path file) {
+    protected void addResultAndNotify(Path file) {
         searchResult.addResult(file);
         if (guiRegistrable != null) {
             guiRegistrable.onNewResultFile(new ResultEventArgs(file, searchResult.getTotalFiles(), searchResult.getTotalFoundFiles()));
@@ -257,7 +253,7 @@ public abstract class AFilePDFSearcher
     /**
      * Increase the found file counter and notify the observer
      */
-    private void CountNewFileAndNotify() {
+    private void countNewFileAndNotify() {
         searchResult.IncreaseTotalFiles();
         if (guiRegistrable != null) {
             guiRegistrable.onNewFoundFile(searchResult.getTotalFiles());

@@ -34,7 +34,7 @@ public class EventsFileSearcher extends AFilePDFSearcher {
                     EventBus eb = this.getVertx().eventBus();
                     eb.<String>consumer(topicNameResults, message -> {
                         String positiveFile = message.body();
-                        AddResultAndNotify(Path.of(positiveFile));
+                        addResultAndNotify(Path.of(positiveFile));
                         try {
                             finishSem.acquire();
                             notifyIfFinished();

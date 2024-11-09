@@ -22,7 +22,7 @@ public class ReactiveFileSearcher extends AFilePDFSearcher {
                 .subscribe(file -> {
                     var isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
                     if(isPositive) {
-                        AddResultAndNotify(file);
+                        addResultAndNotify(file);
                     }
                 }, Throwable::printStackTrace, this::notifyFinish);
         }

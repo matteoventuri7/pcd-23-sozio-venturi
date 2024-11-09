@@ -33,7 +33,7 @@ public class TaskFileSearcher extends AFilePDFSearcher {
                 var done = searchWordInsideFile(file, attrs);
                 if(done.isPresent() && done.get()){
                     sem.acquire();
-                    AddResultAndNotify(file);
+                    addResultAndNotify(file);
                     sem.release();
                 }
                 return done;

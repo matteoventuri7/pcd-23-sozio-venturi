@@ -1,6 +1,5 @@
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Optional;
 import java.util.concurrent.*;
 
 public class MultiThreadFileSearcher extends AFilePDFSearcher {
@@ -41,7 +40,7 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
                 if (done.isPresent()) {
                     sem.acquire();
                     if(done.get()) {
-                        AddResultAndNotify(file);
+                        addResultAndNotify(file);
                     }
                     notifyIfFinished();
                     sem.release();
