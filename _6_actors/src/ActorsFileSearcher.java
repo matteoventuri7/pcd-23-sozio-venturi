@@ -8,9 +8,8 @@ import java.util.concurrent.Semaphore;
 
 public class ActorsFileSearcher extends AFilePDFSearcher{
     protected int nComputedFiles=0;
-    private ActorSystem<FileSearchProtocol.FoundFileMessage> fileFinderActor;
-    private ActorSystem<FileSearchProtocol.FoundFileMessage> positiveFileFoundActor;
-    protected Semaphore finishSem = new Semaphore(1);
+    private ActorSystem<FoundFileMessage> fileFinderActor;
+    private ActorSystem<BaseSearchMessage> positiveFileFoundActor;
     protected boolean finishAlreadyNotified = false;
 
     public ActorsFileSearcher(Path start, String word) {
@@ -29,19 +28,14 @@ public class ActorsFileSearcher extends AFilePDFSearcher{
     protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws InterruptedException {
         CheckStartSearch();
 
-        fileFinderActor.tell(new FileSearchProtocol.FoundFileMessage(this, positiveFileFoundActor, file, word));
+        fileFinderActor.tell(new FoundFileMessage(this, positiveFileFoundActor, file, word));
     }
 
     @Override
     protected void onSearchIsFinished() throws InterruptedException {
         super.onSearchIsFinished();
-        try {
-            finishSem.acquire();
-            notifyIfFinished();
-            finishSem.release();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+
+        positiveFileFoundActor.tell(new FinishSearchMessage(this));
     }
 
     protected void notifyIfFinished() {
@@ -63,37 +57,18 @@ public class ActorsFileSearcher extends AFilePDFSearcher{
     }
 }
 
-class FileSearchProtocol {
-    public static class FoundFileMessage {
-        // sender
-        public final ActorRef<FileSearchProtocol.FoundFileMessage> fileFinderActor;
-        public final Path file;
-        public final String word;
-        // destination
-        public final ActorsFileSearcher searcher;
-        public boolean isPositive;
+class FileSearchProtocolBehaviour extends AbstractBehavior<FoundFileMessage> {
 
-        public FoundFileMessage(ActorsFileSearcher searcher, ActorRef<FileSearchProtocol.FoundFileMessage> fileFinderActor, Path file, String word) {
-            this.fileFinderActor=fileFinderActor;
-            this.word=word;
-            this.file = file;
-            this.searcher=searcher;
-        }
-    }
-}
-
-class FileSearchProtocolBehaviour extends AbstractBehavior<FileSearchProtocol.FoundFileMessage> {
-
-    private FileSearchProtocolBehaviour(ActorContext<FileSearchProtocol.FoundFileMessage> context) {
+    private FileSearchProtocolBehaviour(ActorContext<FoundFileMessage> context) {
         super(context);
     }
 
     @Override
-    public Receive<FileSearchProtocol.FoundFileMessage> createReceive() {
-        return newReceiveBuilder().onMessage(FileSearchProtocol.FoundFileMessage.class, this::onFileFound).build();
+    public Receive<FoundFileMessage> createReceive() {
+        return newReceiveBuilder().onMessage(FoundFileMessage.class, this::onFileFound).build();
     }
 
-    private Behavior<FileSearchProtocol.FoundFileMessage> onFileFound(FileSearchProtocol.FoundFileMessage msg) throws IOException {
+    private Behavior<FoundFileMessage> onFileFound(FoundFileMessage msg) throws IOException {
         getContext().getLog().info("Found file " + msg.file + " from " + this.getContext().getSelf());
 
         var isPositive = AFilePDFSearcher.searchWordInPDF(msg.file, msg.word);
@@ -104,45 +79,43 @@ class FileSearchProtocolBehaviour extends AbstractBehavior<FileSearchProtocol.Fo
         return this;
     }
 
-    public static Behavior<FileSearchProtocol.FoundFileMessage> create() {
+    public static Behavior<FoundFileMessage> create() {
         return Behaviors.setup(FileSearchProtocolBehaviour::new);
     }
 }
 
-class PositiveFileSearchProtocolBehaviour extends AbstractBehavior<FileSearchProtocol.FoundFileMessage>{
-    public PositiveFileSearchProtocolBehaviour(ActorContext<FileSearchProtocol.FoundFileMessage> context) {
+class PositiveFileSearchProtocolBehaviour extends AbstractBehavior<BaseSearchMessage>{
+    public PositiveFileSearchProtocolBehaviour(ActorContext<BaseSearchMessage> context) {
         super(context);
     }
 
-    private Behavior<FileSearchProtocol.FoundFileMessage> onPositiveFound(FileSearchProtocol.FoundFileMessage msg) {
-        getContext().getLog().info("File " + msg.file + " from " + this.getContext().getSelf() + " contains text!");
+    private Behavior<BaseSearchMessage> onPositiveFound(BaseSearchMessage baseMsg) {
+        if(baseMsg instanceof FoundFileMessage foundMsg){
 
-        if(msg.isPositive) {
-            msg.searcher.addResultAndNotify(msg.file);
+            getContext().getLog().info("File " + foundMsg.file + " from " + this.getContext().getSelf() + " contains text!");
+
+            if(foundMsg.isPositive) {
+                foundMsg.searcher.addResultAndNotify(foundMsg.file);
+            }
+
+            foundMsg.searcher.nComputedFiles++;
+        }else{
+            int i = 0;
         }
 
-        msg.searcher.nComputedFiles++;
-
-        try {
-            msg.searcher.finishSem.acquire();
-            msg.searcher.notifyIfFinished();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } finally {
-            msg.searcher.finishSem.release();
-        }
+        baseMsg.searcher.notifyIfFinished();
 
         return this;
     }
 
     @Override
-    public Receive<FileSearchProtocol.FoundFileMessage> createReceive() {
+    public Receive<BaseSearchMessage> createReceive() {
         return newReceiveBuilder()
-                .onMessage(FileSearchProtocol.FoundFileMessage.class, this::onPositiveFound)
+                .onMessage(BaseSearchMessage.class, this::onPositiveFound)
                 .build();
     }
 
-    public static Behavior<FileSearchProtocol.FoundFileMessage> create() {
+    public static Behavior<BaseSearchMessage> create() {
         return Behaviors.setup(PositiveFileSearchProtocolBehaviour::new);
     }
 }
