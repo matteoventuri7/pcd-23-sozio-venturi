@@ -4,21 +4,31 @@ import akka.actor.typed.javadsl.*;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 
 public class ActorsFileSearcher extends AFilePDFSearcher{
     protected int nComputedFiles=0;
-    private ActorSystem<FoundFileMessage> fileFinderActor;
+    private List<ActorSystem<FoundFileMessage>> fileFinderActor;
     private ActorSystem<BaseSearchMessage> positiveFileFoundActor;
-    protected boolean finishAlreadyNotified = false;
+    private boolean finishAlreadyNotified = false;
+    private int nextActorIndex = 0;
+    private int totalCountActors = 0;
 
     public ActorsFileSearcher(Path start, String word) {
         super(start, word);
 
         if(fileFinderActor == null) {
             nComputedFiles=0;
-            fileFinderActor
-                    = ActorSystem.create(FileSearchProtocolBehaviour.create(), "file-finder-actor");
+
+            totalCountActors = Runtime.getRuntime().availableProcessors() + 1;
+            fileFinderActor = new ArrayList<ActorSystem<FoundFileMessage>>(totalCountActors);
+            for(int i=0; i<totalCountActors; i++) {
+                var actor = ActorSystem.create(FileSearchProtocolBehaviour.create(), "file-finder-actor-"+i);
+                fileFinderActor.add(actor);
+            }
+
             positiveFileFoundActor
                     = ActorSystem.create(PositiveFileSearchProtocolBehaviour.create(), "file-positive-finder-actor");
         }
@@ -28,7 +38,8 @@ public class ActorsFileSearcher extends AFilePDFSearcher{
     protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws InterruptedException {
         CheckStartSearch();
 
-        fileFinderActor.tell(new FoundFileMessage(this, positiveFileFoundActor, file, word));
+        fileFinderActor.get(nextActorIndex).tell(new FoundFileMessage(this, positiveFileFoundActor, file, word));
+        nextActorIndex = (nextActorIndex + 1) % totalCountActors;
     }
 
     @Override
@@ -52,7 +63,10 @@ public class ActorsFileSearcher extends AFilePDFSearcher{
     @Override
     public void close() throws Exception {
         super.close();
-        fileFinderActor.terminate();
+        for(ActorSystem<FoundFileMessage> actor : fileFinderActor) {
+            actor.terminate();
+        }
+        fileFinderActor.clear();
         positiveFileFoundActor.terminate();
     }
 }
@@ -69,7 +83,7 @@ class FileSearchProtocolBehaviour extends AbstractBehavior<FoundFileMessage> {
     }
 
     private Behavior<FoundFileMessage> onFileFound(FoundFileMessage msg) throws IOException {
-        getContext().getLog().info("Found file " + msg.file + " from " + this.getContext().getSelf());
+        //System.out.println("Found file " + msg.file + " from " + this.getContext().getSelf());
 
         var isPositive = AFilePDFSearcher.searchWordInPDF(msg.file, msg.word);
 
@@ -92,15 +106,13 @@ class PositiveFileSearchProtocolBehaviour extends AbstractBehavior<BaseSearchMes
     private Behavior<BaseSearchMessage> onPositiveFound(BaseSearchMessage baseMsg) {
         if(baseMsg instanceof FoundFileMessage foundMsg){
 
-            getContext().getLog().info("File " + foundMsg.file + " from " + this.getContext().getSelf() + " contains text!");
+            //System.out.println("File " + foundMsg.file + " from " + this.getContext().getSelf() + " contains text!");
 
             if(foundMsg.isPositive) {
                 foundMsg.searcher.addResultAndNotify(foundMsg.file);
             }
 
             foundMsg.searcher.nComputedFiles++;
-        }else{
-            int i = 0;
         }
 
         baseMsg.searcher.notifyIfFinished();
