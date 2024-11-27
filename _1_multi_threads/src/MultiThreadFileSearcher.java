@@ -43,11 +43,11 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
                     }
 
                     notifyIfFinished();
-
-                    searcherLock.unlock();
                 }
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
+            } finally {
+                searcherLock.unlock();
             }
         });
     }

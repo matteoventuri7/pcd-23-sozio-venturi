@@ -33,11 +33,12 @@ public class TaskFileSearcher extends AFilePDFSearcher {
                 if(done.isPresent() && done.get()){
                     searcherLock.lock();
                     addResultAndNotify(file);
-                    searcherLock.unlock();
                 }
                 return done;
             } catch (InterruptedException e) {
                 return Optional.empty();
+            } finally {
+                searcherLock.unlock();
             }
         });
 
