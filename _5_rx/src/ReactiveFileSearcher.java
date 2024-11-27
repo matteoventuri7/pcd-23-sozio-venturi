@@ -8,7 +8,6 @@ import java.util.concurrent.Semaphore;
 public class ReactiveFileSearcher extends AFilePDFSearcher {
     private PublishSubject<Path> sourcePaths;
     private Disposable toDispose;
-    private Semaphore sem = new Semaphore(1);
 
     public ReactiveFileSearcher(Path start, String word) {
         super(start, word);
@@ -24,9 +23,9 @@ public class ReactiveFileSearcher extends AFilePDFSearcher {
                 .subscribe(file -> {
                     var isPositive = AFilePDFSearcher.searchWordInPDF(file, word);
                     if(isPositive) {
-                        sem.acquire();
+                        searcherLock.lock();
                         addResultAndNotify(file);
-                        sem.release();
+                        searcherLock.unlock();
                     }
                 }, Throwable::printStackTrace, this::notifyFinish);
         }

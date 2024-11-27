@@ -5,8 +5,6 @@ import java.util.concurrent.*;
 public class MultiThreadFileSearcher extends AFilePDFSearcher {
     protected ExecutorService threadPool;
     private long nComputedFiles;
-    private Semaphore sem = new Semaphore(1, true);
-    private long spawnedThreads = 0;
 
     public MultiThreadFileSearcher(Path start, String word) {
         super(start, word);
@@ -30,15 +28,13 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
 
     @Override
     protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws RejectedExecutionException {
-        spawnedThreads++;
-
         threadPool.execute(() -> {
             try {
                 CheckStartSearch();
 
                 var done = searchWordInsideFile(file, attrs);
                 if (done.isPresent()) {
-                    sem.acquire();
+                    searcherLock.lock();
 
                     nComputedFiles++;
 
@@ -48,7 +44,7 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
 
                     notifyIfFinished();
 
-                    sem.release();
+                    searcherLock.unlock();
                 }
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
@@ -69,9 +65,9 @@ public class MultiThreadFileSearcher extends AFilePDFSearcher {
     @Override
     protected void onSearchIsFinished() throws InterruptedException {
         super.onSearchIsFinished();
-        sem.acquire();
+        searcherLock.lock();
         notifyIfFinished();
-        sem.release();
+        searcherLock.unlock();
     }
 
     @Override

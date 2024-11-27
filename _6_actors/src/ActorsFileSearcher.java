@@ -6,10 +6,9 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Semaphore;
 
 public class ActorsFileSearcher extends AFilePDFSearcher{
-    protected int nComputedFiles=0;
+    private int nComputedFiles=0;
     private List<ActorSystem<FoundFileMessage>> fileFinderActor;
     private ActorSystem<BaseSearchMessage> positiveFileFoundActor;
     private boolean finishAlreadyNotified = false;
@@ -34,6 +33,12 @@ public class ActorsFileSearcher extends AFilePDFSearcher{
         }
     }
 
+    public void incComputedFiles(){
+        searcherLock.lock();
+        nComputedFiles++;
+        searcherLock.unlock();
+    }
+
     @Override
     protected void onFoundPDFFile(Path file, BasicFileAttributes attrs) throws InterruptedException {
         CheckStartSearch();
@@ -50,10 +55,12 @@ public class ActorsFileSearcher extends AFilePDFSearcher{
     }
 
     protected void notifyIfFinished() {
+        searcherLock.lock();
         if (!finishAlreadyNotified && isResearchFinished() && isFinished()) {
             finishAlreadyNotified = true;
             notifyFinish();
         }
+        searcherLock.unlock();
     }
 
     private boolean isFinished() {
@@ -112,7 +119,7 @@ class PositiveFileSearchProtocolBehaviour extends AbstractBehavior<BaseSearchMes
                 foundMsg.searcher.addResultAndNotify(foundMsg.file);
             }
 
-            foundMsg.searcher.nComputedFiles++;
+            foundMsg.searcher.incComputedFiles();
         }
 
         baseMsg.searcher.notifyIfFinished();

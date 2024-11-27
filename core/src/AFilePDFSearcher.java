@@ -6,6 +6,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Provide a basic implementation of directory visitor, notifying each directory or file found.
@@ -17,7 +18,7 @@ public abstract class AFilePDFSearcher
     protected final String word;
     private boolean stop = false, pause = false, researchIsfinished = false;
     private final Semaphore fileWalkerSemaphore = new Semaphore(1, true);
-    private final Semaphore searcherSemaphore = new Semaphore(1, true);
+    protected final ReentrantLock searcherLock = new ReentrantLock();
     private final ExecutorService threadPool;
     /**
      * Mark the computation time
@@ -40,11 +41,21 @@ public abstract class AFilePDFSearcher
     }
 
     protected boolean isPaused(){
-        return pause;
+        try {
+            searcherLock.lock();
+            return pause;
+        }finally {
+            searcherLock.unlock();
+        }
     }
 
     protected boolean isResearchFinished() {
-        return researchIsfinished;
+        try {
+            searcherLock.lock();
+            return researchIsfinished;
+        } finally {
+            searcherLock.unlock();
+        }
     }
 
     /**
@@ -52,8 +63,8 @@ public abstract class AFilePDFSearcher
      * @throws InterruptedException
      */
     protected void CheckStartSearch() throws InterruptedException {
-        searcherSemaphore.acquire();
-        searcherSemaphore.release();
+        searcherLock.lock();
+        searcherLock.unlock();
     }
 
     /**
@@ -136,7 +147,9 @@ public abstract class AFilePDFSearcher
     }
 
     protected void onSearchIsFinished() throws InterruptedException {
+        searcherLock.lock();
         researchIsfinished = true;
+        searcherLock.unlock();
     }
 
     /**
@@ -157,7 +170,7 @@ public abstract class AFilePDFSearcher
     public void pause() {
         try {
             fileWalkerSemaphore.acquire();
-            searcherSemaphore.acquire();
+            searcherLock.lock();
             pause = true;
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -166,7 +179,7 @@ public abstract class AFilePDFSearcher
 
     public void resume() {
         pause = false;
-        searcherSemaphore.release();
+        searcherLock.unlock();
         fileWalkerSemaphore.release();
     }
 
@@ -182,7 +195,7 @@ public abstract class AFilePDFSearcher
     public void close() throws Exception {
         stop = true;
         fileWalkerSemaphore.release();
-        searcherSemaphore.release();
+        searcherLock.unlock();
 
         if(threadPool != null) {
             threadPool.shutdown();

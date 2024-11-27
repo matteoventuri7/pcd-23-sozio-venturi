@@ -2,18 +2,15 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.concurrent.Semaphore;
 
 public class EventsFileSearcher extends AFilePDFSearcher {
     protected final static String topicNameResults = "pdf-search-result";
     protected final static String topicNameSearcher = "pdf-search-request";
     private Vertx vertx;
     private int nComputedFiles=0;
-    private Semaphore finishSem = new Semaphore(1);
     private EventBus _eventBus;
 
     public EventsFileSearcher(Path start, String word) {
@@ -36,16 +33,9 @@ public class EventsFileSearcher extends AFilePDFSearcher {
                             addResultAndNotify(Path.of(positiveFile));
                         }
 
-                        try {
-                            finishSem.acquire();
-                            nComputedFiles++;
+                        nComputedFiles++;
 
-                            notifyIfFinished();
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        } finally {
-                            finishSem.release();
-                        }
+                        notifyIfFinished();
                     });
                 }
             });
@@ -72,9 +62,11 @@ public class EventsFileSearcher extends AFilePDFSearcher {
     }
 
     protected void notifyIfFinished() {
+        searcherLock.lock();
         if (isResearchFinished() && isFinished()) {
             notifyFinish();
         }
+        searcherLock.unlock();
     }
 
     private boolean isFinished() {
@@ -84,14 +76,7 @@ public class EventsFileSearcher extends AFilePDFSearcher {
     @Override
     protected void onSearchIsFinished() throws InterruptedException {
         super.onSearchIsFinished();
-        try {
-            finishSem.acquire();
-            notifyIfFinished();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } finally {
-            finishSem.release();
-        }
+        notifyIfFinished();
     }
 
     @Override
